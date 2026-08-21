@@ -33,6 +33,8 @@ class User(Base):
     exams = relationship("Exam", back_populates="owner", cascade="all, delete-orphan")
     exam_results = relationship("ExamResult", back_populates="user", cascade="all, delete-orphan")
     planner_items = relationship("PlannerItem", back_populates="owner", cascade="all, delete-orphan")
+    document_chunks = relationship("DocumentChunk", back_populates="owner", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="owner", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r}>"
