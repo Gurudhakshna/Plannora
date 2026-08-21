@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { hasStudyPlan } from "../utils/storage";
 import GoogleLoginButton from "../components/auth/GoogleLoginButton";
 
 export default function Login() {
   const { signInWithGoogle, user } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,17 +19,11 @@ export default function Login() {
         err instanceof Error ? err.message : "Failed to sign in with Google.";
       setError(message);
       setLoading(false);
-      return;
     }
   }
 
   if (user) {
-    if (hasStudyPlan(user.uid)) {
-      navigate("/dashboard", { replace: true });
-    } else {
-      navigate("/setup-study-plan", { replace: true });
-    }
-    return null;
+    return <Navigate to={hasStudyPlan(user.uid) ? "/dashboard" : "/setup-study-plan"} replace />;
   }
 
   return (

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Task } from "../types/task";
-import { getToday } from "../utils/storage";
+import { getToday, toDateKey } from "../utils/storage";
 
 interface ProgressDashboardProps {
   tasks: Task[];
@@ -16,16 +16,32 @@ function calcStreak(tasks: Task[]): number {
   if (!completedDates.has(todayStr)) {
     d.setDate(d.getDate() - 1);
   }
-  while (true) {
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    if (completedDates.has(key)) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    } else {
-      break;
-    }
+  while (completedDates.has(toDateKey(d))) {
+    streak++;
+    d.setDate(d.getDate() - 1);
   }
   return streak;
+}
+
+function parseDurationMinutes(duration: string): number {
+  if (!duration) return 0;
+  const hourMin = duration.match(/(\d+(?:\.\d+)?)\s*h(?:our)?s?\s*(\d+)?\s*m?/i);
+  if (hourMin) {
+    const hours = parseFloat(hourMin[1]);
+    const mins = hourMin[2] ? parseInt(hourMin[2], 10) : 0;
+    return Math.round(hours * 60 + mins);
+  }
+  const minMatch = duration.match(/(\d+)\s*m/i);
+  if (minMatch) return parseInt(minMatch[1], 10);
+  return 0;
+}
+
+function formatHours(minutes: number): string {
+  if (minutes === 0) return "0h";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 function getWeekDates(): string[] {
@@ -35,7 +51,7 @@ function getWeekDates(): string[] {
   for (let i = 0; i < 7; i++) {
     const cur = new Date(d);
     cur.setDate(cur.getDate() + i);
-    dates.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`);
+    dates.push(toDateKey(cur));
   }
   return dates;
 }
@@ -48,6 +64,10 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     const streak = calcStreak(tasks);
 
+    const studiedMinutes = tasks
+      .filter((t) => t.completed)
+      .reduce((sum, t) => sum + parseDurationMinutes(t.duration), 0);
+
     const subjectMap: Record<string, { total: number; completed: number }> = {};
     tasks.forEach((t) => {
       if (!subjectMap[t.subject]) subjectMap[t.subject] = { total: 0, completed: 0 };
@@ -59,7 +79,7 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
       total: data.total,
       completed: data.completed,
       percentage: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
-    }));
+    })).sort((a, b) => b.total - a.total);
 
     const weekDates = getWeekDates();
     const weeklyData = weekDates.map((dateStr) => {
@@ -74,7 +94,7 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
     });
     const maxWeeklyTasks = Math.max(...weeklyData.map((d) => d.total), 1);
 
-    return { total, completed, pending, percentage, streak, subjects, weeklyData, maxWeeklyTasks };
+    return { total, completed, pending, percentage, streak, studiedMinutes, subjects, weeklyData, maxWeeklyTasks };
   }, [tasks]);
 
   if (tasks.length === 0) {
@@ -82,7 +102,7 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
       <div className="progress-page">
         <div className="empty-state">
           <div className="empty-state-icon-wrap">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
               <path d="M6 40V30" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.2"/>
               <path d="M14 40V22" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.25"/>
               <path d="M22 40V14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.3"/>
@@ -102,7 +122,7 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
       <div className="progress-stats-grid">
         <div className="progress-stat-card">
           <div className="progress-ring-container">
-            <svg className="progress-ring" viewBox="0 0 120 120">
+            <svg className="progress-ring" viewBox="0 0 120 120" role="img" aria-label={`${stats.percentage}% completion rate`}>
               <circle className="progress-ring-bg" cx="60" cy="60" r="50" fill="none" strokeWidth="10"/>
               <circle
                 className="progress-ring-fill"
@@ -127,8 +147,10 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
         </div>
 
         <div className="progress-stat-card">
-          <div className="progress-stat-number pending-color">{stats.pending}</div>
-          <span className="progress-stat-label">Tasks Pending</span>
+          <div className="progress-stat-number primary-color" title="Estimated from durations of completed tasks">
+            {formatHours(stats.studiedMinutes)}
+          </div>
+          <span className="progress-stat-label">Est. Study Hours</span>
         </div>
 
         <div className="progress-stat-card">
@@ -139,10 +161,10 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
 
       <div className="progress-sections">
         <div className="progress-card">
-          <h3 className="progress-card-title">Weekly Overview</h3>
+          <h3 className="progress-card-title">Weekly Activity</h3>
           <div className="weekly-chart">
-            {stats.weeklyData.map((day, i) => (
-              <div key={i} className="weekly-bar-container">
+            {stats.weeklyData.map((day) => (
+              <div key={day.date} className="weekly-bar-container" title={`${day.label}: ${day.completed} of ${day.total} tasks completed`}>
                 <div className="weekly-bar-wrapper">
                   <div className="weekly-bar-track">
                     <div
@@ -179,7 +201,14 @@ export default function ProgressDashboard({ tasks }: ProgressDashboardProps) {
                     <span className="subject-count">{s.completed}/{s.total} tasks</span>
                   </div>
                   <div className="subject-bar-container">
-                    <div className="subject-bar">
+                    <div
+                      className="subject-bar"
+                      role="progressbar"
+                      aria-valuenow={s.percentage}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${s.name}: ${s.percentage}% complete`}
+                    >
                       <div className="subject-bar-fill" style={{ width: `${s.percentage}%` }} />
                     </div>
                     <span className="subject-percentage">{s.percentage}%</span>

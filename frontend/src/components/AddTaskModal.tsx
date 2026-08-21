@@ -1,16 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Task, Priority } from "../types/task";
+import { getToday } from "../utils/storage";
 
 interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (task: Omit<Task, "id" | "createdAt" | "completed" | "userId">) => void;
   editingTask: Task | null;
-}
-
-function getToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function TaskForm({ editingTask, onSave, onClose }: {
@@ -26,6 +22,11 @@ function TaskForm({ editingTask, onSave, onClose }: {
   const [description, setDescription] = useState(editingTask?.description ?? "");
   const [notes, setNotes] = useState(editingTask?.notes ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
@@ -56,6 +57,7 @@ function TaskForm({ editingTask, onSave, onClose }: {
       <div className="form-group">
         <label htmlFor="task-title">Task Title *</label>
         <input
+          ref={titleRef}
           id="task-title"
           type="text"
           value={title}
@@ -145,6 +147,19 @@ function TaskForm({ editingTask, onSave, onClose }: {
 }
 
 export default function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   function handleBackdropClick(e: React.MouseEvent) {

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Task } from "../types/task";
-import { getToday } from "../utils/storage";
+import { getToday, formatDateKey } from "../utils/storage";
 
 interface CalendarProps {
   tasks: Task[];
@@ -63,9 +63,10 @@ export default function Calendar({ tasks }: CalendarProps) {
     setCurrentDate(new Date(year, month + 1, 1));
   }
 
-  function formatSelectedDate(dateStr: string): string {
-    const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  function goToToday() {
+    const now = new Date();
+    setCurrentDate(now);
+    setSelectedDate(getToday());
   }
 
   return (
@@ -73,51 +74,68 @@ export default function Calendar({ tasks }: CalendarProps) {
       <div className="calendar-container">
         <div className="calendar-header">
           <button className="calendar-nav-btn" onClick={prevMonth} aria-label="Previous month">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M12 5L7 10L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           <h2 className="calendar-month-title">{MONTH_NAMES[month]} {year}</h2>
-          <button className="calendar-nav-btn" onClick={nextMonth} aria-label="Next month">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          <div className="calendar-header-actions">
+            <button className="btn btn-secondary btn-sm" onClick={goToToday}>Today</button>
+            <button className="calendar-nav-btn" onClick={nextMonth} aria-label="Next month">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <div className="calendar-grid">
+        <div className="calendar-grid" role="grid" aria-label={`${MONTH_NAMES[month]} ${year} calendar`}>
           {DAY_NAMES.map((d) => (
-            <div key={d} className="calendar-day-name">{d}</div>
+            <div key={d} className="calendar-day-name" role="columnheader">{d}</div>
           ))}
           {calendarDays.map((d) => {
             const dayTasks = tasksByDate[d.key] || [];
+            const openCount = dayTasks.filter((t) => !t.completed).length;
             const isToday = d.key === today;
             const isSelected = d.key === selectedDate;
+            const label = formatDateKey(d.key, { weekday: "long", month: "long", day: "numeric" });
             return (
               <button
                 key={d.key}
+                type="button"
+                role="gridcell"
                 className={`calendar-day ${d.isCurrentMonth ? "" : "other-month"} ${isToday ? "today" : ""} ${isSelected ? "selected" : ""}`}
                 onClick={() => setSelectedDate(d.key)}
+                aria-pressed={isSelected}
+                aria-label={`${label}${dayTasks.length > 0 ? `, ${openCount} open task${openCount !== 1 ? "s" : ""}` : ", no tasks"}`}
+                aria-current={isToday ? "date" : undefined}
               >
                 <span className="day-number">{d.day}</span>
                 {dayTasks.length > 0 && (
-                  <div className="day-dots">
-                    {dayTasks.slice(0, 3).map((t, i) => (
+                  <span className="day-dots" aria-hidden="true">
+                    {dayTasks.slice(0, 3).map((t) => (
                       <span
-                        key={i}
+                        key={t.id}
                         className={`day-dot ${t.completed ? "dot-done" : ""} dot-${t.priority.toLowerCase()}`}
                       />
                     ))}
-                  </div>
+                  </span>
                 )}
               </button>
             );
           })}
         </div>
+
+        <div className="chart-legend calendar-legend" aria-hidden="true">
+          <span className="legend-item"><span className="legend-dot dot-high" />High priority</span>
+          <span className="legend-item"><span className="legend-dot dot-medium" />Medium</span>
+          <span className="legend-item"><span className="legend-dot dot-low" />Low</span>
+          <span className="legend-item"><span className="legend-dot legend-done" />Completed</span>
+        </div>
       </div>
 
-      <div className="calendar-sidebar">
-        <h3 className="sidebar-date">{selectedDate ? formatSelectedDate(selectedDate) : "Select a date"}</h3>
+      <aside className="calendar-sidebar" aria-label="Tasks for the selected date">
+        <h3 className="sidebar-date">{selectedDate ? formatDateKey(selectedDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : "Select a date"}</h3>
         {selectedTasks.length === 0 ? (
           <div className="dash-empty-inline">
             <p>No tasks on this date</p>
@@ -128,7 +146,11 @@ export default function Calendar({ tasks }: CalendarProps) {
               <li key={t.id} className={`sidebar-task-item ${t.completed ? "done" : ""}`}>
                 <div className="sidebar-task-info">
                   <span className="sidebar-task-title">{t.title}</span>
-                  <span className="sidebar-task-subject">{t.subject}</span>
+                  <span className="sidebar-task-subject">
+                    {t.subject}
+                    {t.duration && ` \u00b7 ${t.duration}`}
+                    {t.source === "ai" && " \u00b7 AI"}
+                  </span>
                 </div>
                 <span className={`sidebar-task-priority priority-${t.priority.toLowerCase()}`}>
                   {t.priority}
@@ -137,7 +159,7 @@ export default function Calendar({ tasks }: CalendarProps) {
             ))}
           </ul>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

@@ -10,6 +10,8 @@ env/
 
 # Environment variables / secrets
 .env
+.env.*
+!.env.example
 
 # Local database
 *.db
@@ -28,5 +30,22 @@ htmlcov/
 .vscode/
 .idea/
 
-# Node
+# Node dependencies
 node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build output
+dist/
+frontend/dist/
+backend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

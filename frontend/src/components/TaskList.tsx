@@ -1,12 +1,16 @@
 import { useState, useMemo } from "react";
 import type { Task, Priority } from "../types/task";
+import type { AIStudyTask } from "../types/study-material";
 import TaskCard from "./TaskCard";
 
 interface TaskListProps {
   tasks: Task[];
+  aiTasks: AIStudyTask[];
   onToggleComplete: (id: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onToggleAIComplete: (id: string) => void;
+  onDeleteAI: (id: string) => void;
 }
 
 type FilterStatus = "all" | "pending" | "completed";
@@ -14,7 +18,7 @@ type SortBy = "date" | "priority";
 
 const priorityOrder: Record<Priority, number> = { High: 0, Medium: 1, Low: 2 };
 
-export default function TaskList({ tasks, onToggleComplete, onEdit, onDelete }: TaskListProps) {
+export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onDelete, onToggleAIComplete, onDeleteAI }: TaskListProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
@@ -52,6 +56,17 @@ export default function TaskList({ tasks, onToggleComplete, onEdit, onDelete }: 
     completed: tasks.filter((t) => t.completed).length,
   }), [tasks]);
 
+  const sortedAITasks = useMemo(
+    () =>
+      [...aiTasks].sort((a, b) => {
+        if (a.completed !== b.completed) return Number(a.completed) - Number(b.completed);
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }),
+    [aiTasks]
+  );
+
+  const pendingAICount = aiTasks.filter((t) => !t.completed).length;
+
   return (
     <div className="task-list-page">
       <div className="task-list-controls">
@@ -66,6 +81,7 @@ export default function TaskList({ tasks, onToggleComplete, onEdit, onDelete }: 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
+            aria-label="Search tasks"
           />
           {search && (
             <button className="search-clear" onClick={() => setSearch("")} aria-label="Clear search">
@@ -92,6 +108,7 @@ export default function TaskList({ tasks, onToggleComplete, onEdit, onDelete }: 
             className="sort-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortBy)}
+            aria-label="Sort tasks"
           >
             <option value="date">Sort by Date</option>
             <option value="priority">Sort by Priority</option>
@@ -148,6 +165,61 @@ export default function TaskList({ tasks, onToggleComplete, onEdit, onDelete }: 
           ))}
         </div>
       )}
+
+      {sortedAITasks.length > 0 && (
+        <section className="ai-tasks-section">
+          <div className="ai-tasks-header">
+            <h3 className="ai-tasks-title">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 1L9.5 5.5L14 7L9.5 8.5L8 13L6.5 8.5L2 7L6.5 5.5L8 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+              </svg>
+              AI Suggested Tasks
+              <span className="ai-chip">AI</span>
+            </h3>
+            <span className="ai-tasks-count">{pendingAICount} pending of {sortedAITasks.length}</span>
+          </div>
+          <div className="ai-tasks-list">
+            {sortedAITasks.map((t) => (
+              <div key={t.id} className={`ai-task-item ${t.completed ? "completed" : ""}`}>
+                <button
+                  className={`checkbox checkbox-sm ${t.completed ? "checked" : ""}`}
+                  onClick={() => onToggleAIComplete(t.id)}
+                  aria-label={t.completed ? "Mark incomplete" : "Mark complete"}
+                >
+                  {t.completed && (
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                      <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+                <div className="ai-task-info">
+                  <span className="ai-task-title">{t.title}</span>
+                  <span className="ai-task-meta">
+                    {t.topic}
+                    {t.dueDate && ` \u00b7 Due ${formatAIDate(t.dueDate)}`}
+                    {t.estimatedMinutes > 0 && ` \u00b7 ${t.estimatedMinutes} min`}
+                  </span>
+                </div>
+                <span className={`dash-task-badge priority-${t.priority.toLowerCase()}`}>{t.priority}</span>
+                <button
+                  className="dash-task-dismiss"
+                  onClick={() => onDeleteAI(t.id)}
+                  aria-label={`Dismiss "${t.title}"`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                    <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
+}
+
+function formatAIDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

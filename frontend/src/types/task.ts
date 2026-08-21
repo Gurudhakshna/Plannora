@@ -1,6 +1,6 @@
 export type Priority = "Low" | "Medium" | "High";
 
-export type Page = "dashboard" | "tasks" | "calendar" | "progress";
+export type Page = "dashboard" | "plan" | "tasks" | "calendar" | "progress" | "materials" | "profile" | "settings";
 
 export interface Task {
   id: string;
@@ -14,6 +14,7 @@ export interface Task {
   completed: boolean;
   createdAt: string;
   userId: string;
+  source?: "ai";
 }
 
 export interface StudyPlan {
