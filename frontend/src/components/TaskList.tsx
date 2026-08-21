@@ -18,7 +18,15 @@ type SortBy = "date" | "priority";
 
 const priorityOrder: Record<Priority, number> = { High: 0, Medium: 1, Low: 2 };
 
-export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onDelete, onToggleAIComplete, onDeleteAI }: TaskListProps) {
+export default function TaskList({
+  tasks,
+  aiTasks,
+  onToggleComplete,
+  onEdit,
+  onDelete,
+  onToggleAIComplete,
+  onDeleteAI,
+}: TaskListProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
@@ -50,11 +58,14 @@ export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onD
     return result;
   }, [tasks, search, filter, sortBy]);
 
-  const counts = useMemo(() => ({
-    all: tasks.length,
-    pending: tasks.filter((t) => !t.completed).length,
-    completed: tasks.filter((t) => t.completed).length,
-  }), [tasks]);
+  const counts = useMemo(
+    () => ({
+      all: tasks.length,
+      pending: tasks.filter((t) => !t.completed).length,
+      completed: tasks.filter((t) => t.completed).length,
+    }),
+    [tasks]
+  );
 
   const sortedAITasks = useMemo(
     () =>
@@ -71,13 +82,13 @@ export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onD
     <div className="task-list-page">
       <div className="task-list-controls">
         <div className="search-box">
-          <svg className="search-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M12 12L16 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
           </svg>
           <input
             type="text"
-            placeholder="Search tasks by title, subject, or description..."
+            placeholder="Filter tasks by title or subject..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
@@ -85,12 +96,13 @@ export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onD
           />
           {search && (
             <button className="search-clear" onClick={() => setSearch("")} aria-label="Clear search">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
               </svg>
             </button>
           )}
         </div>
+
         <div className="filter-group">
           <div className="filter-tabs">
             {(["all", "pending", "completed"] as const).map((f) => (
@@ -117,39 +129,13 @@ export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onD
       </div>
 
       {filteredTasks.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon-wrap">
-            {search ? (
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <circle cx="20" cy="20" r="14" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
-                <path d="M30 30L40 40" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
-                <path d="M16 20H24M16 24H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
-              </svg>
-            ) : tasks.length === 0 ? (
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <rect x="8" y="6" width="32" height="36" rx="4" stroke="currentColor" strokeWidth="2" opacity="0.2"/>
-                <path d="M16 18H32M16 24H32M16 30H24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.3"/>
-              </svg>
-            ) : (
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2" opacity="0.2"/>
-                <path d="M16 24L22 30L32 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.4"/>
-              </svg>
-            )}
-          </div>
-          <h3 className="empty-state-title">
+        <div className="dash-section" style={{ textAlign: "center", padding: "24px" }}>
+          <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>
             {search
-              ? "No tasks found"
+              ? "No tasks match your search filter."
               : filter === "completed"
-                ? "No completed tasks"
-                : "No tasks yet"}
-          </h3>
-          <p className="empty-state-text">
-            {search
-              ? "Try adjusting your search or filters"
-              : filter === "completed"
-                ? "Complete some tasks and they will appear here"
-                : "Create your first study task to get started"}
+                ? "No completed tasks yet."
+                : "No tasks created yet. Click 'New Task' to add one."}
           </p>
         </div>
       ) : (
@@ -170,15 +156,17 @@ export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onD
         <section className="ai-tasks-section">
           <div className="ai-tasks-header">
             <h3 className="ai-tasks-title">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path d="M8 1L9.5 5.5L14 7L9.5 8.5L8 13L6.5 8.5L2 7L6.5 5.5L8 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
               </svg>
               AI Suggested Tasks
-              <span className="ai-chip">AI</span>
+              <span className="badge ai-chip">AI</span>
             </h3>
-            <span className="ai-tasks-count">{pendingAICount} pending of {sortedAITasks.length}</span>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+              {pendingAICount} pending of {sortedAITasks.length}
+            </span>
           </div>
-          <div className="ai-tasks-list">
+          <div className="dash-task-list">
             {sortedAITasks.map((t) => (
               <div key={t.id} className={`ai-task-item ${t.completed ? "completed" : ""}`}>
                 <button
@@ -187,7 +175,7 @@ export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onD
                   aria-label={t.completed ? "Mark incomplete" : "Mark complete"}
                 >
                   {t.completed && (
-                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
                       <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
@@ -200,14 +188,14 @@ export default function TaskList({ tasks, aiTasks, onToggleComplete, onEdit, onD
                     {t.estimatedMinutes > 0 && ` \u00b7 ${t.estimatedMinutes} min`}
                   </span>
                 </div>
-                <span className={`dash-task-badge priority-${t.priority.toLowerCase()}`}>{t.priority}</span>
+                <span className={`badge priority-${t.priority.toLowerCase()}`}>{t.priority}</span>
                 <button
                   className="dash-task-dismiss"
                   onClick={() => onDeleteAI(t.id)}
                   aria-label={`Dismiss "${t.title}"`}
                 >
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                    <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                    <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                   </svg>
                 </button>
               </div>

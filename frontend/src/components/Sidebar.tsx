@@ -12,27 +12,16 @@ interface SidebarProps {
   onCloseMobile: () => void;
 }
 
-const navItems: { id: Page; label: string; icon: React.ReactNode }[] = [
+const workspaceNavItems: { id: Page; label: string; icon: React.ReactNode }[] = [
   {
     id: "dashboard",
     label: "Dashboard",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <rect x="2" y="2" width="7" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
-        <rect x="11" y="2" width="7" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
-        <rect x="2" y="12" width="7" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
-        <rect x="11" y="9" width="7" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
-      </svg>
-    ),
-  },
-  {
-    id: "materials",
-    label: "My Materials",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M4 2H11L14 5V18H4V2Z" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M11 2V5H14" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M7 9H13M7 12H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="2" width="6" height="7" rx="1" stroke="currentColor" strokeWidth="1.4"/>
+        <rect x="10" y="2" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="1.4"/>
+        <rect x="2" y="11" width="6" height="5" rx="1" stroke="currentColor" strokeWidth="1.4"/>
+        <rect x="10" y="8" width="6" height="8" rx="1" stroke="currentColor" strokeWidth="1.4"/>
       </svg>
     ),
   },
@@ -40,19 +29,30 @@ const navItems: { id: Page; label: string; icon: React.ReactNode }[] = [
     id: "plan",
     label: "Study Plan",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M3 4C3 2.9 3.9 2 5 2H15C16.1 2 17 2.9 17 4V18L10 14L3 18V4Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M7 7H13M7 10H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M3 3.5C3 2.67 3.67 2 4.5 2H13.5C14.33 2 15 2.67 15 3.5V16L9 12.5L3 16V3.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+        <path d="M6 6H12M6 8.5H10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
+    id: "materials",
+    label: "Materials",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M3.5 2H10.5L14.5 6V16H3.5V2Z" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M10.5 2V6H14.5" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M6.5 9.5H11.5M6.5 12H9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
   },
   {
     id: "tasks",
-    label: "My Tasks",
+    label: "Tasks",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <rect x="3" y="2" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M7 7H13M7 10H13M7 13H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="2.5" y="2" width="13" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M6 6.5H12M6 9H12M6 11.5H9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
   },
@@ -60,12 +60,12 @@ const navItems: { id: Page; label: string; icon: React.ReactNode }[] = [
     id: "calendar",
     label: "Calendar",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <rect x="2" y="3" width="16" height="15" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M6 1V4M14 1V4M2 8H18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <circle cx="7" cy="12" r="1" fill="currentColor"/>
-        <circle cx="10" cy="12" r="1" fill="currentColor"/>
-        <circle cx="13" cy="12" r="1" fill="currentColor"/>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="3" width="14" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M5.5 1.5V3.5M12.5 1.5V3.5M2 7.5H16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <circle cx="6" cy="11" r="0.75" fill="currentColor"/>
+        <circle cx="9" cy="11" r="0.75" fill="currentColor"/>
+        <circle cx="12" cy="11" r="0.75" fill="currentColor"/>
       </svg>
     ),
   },
@@ -73,24 +73,24 @@ const navItems: { id: Page; label: string; icon: React.ReactNode }[] = [
     id: "progress",
     label: "Progress",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M3 17V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M7 17V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M11 17V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M15 17V3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M3 15V11.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <path d="M7 15V8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <path d="M11 15V4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <path d="M15 15V2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
   },
 ];
 
-const secondaryNavItems: { id: Page; label: string; icon: React.ReactNode }[] = [
+const accountNavItems: { id: Page; label: string; icon: React.ReactNode }[] = [
   {
     id: "profile",
     label: "Profile",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="6.5" r="3.5" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M3.5 17C4.3 13.9 6.9 12 10 12C13.1 12 15.7 13.9 16.5 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="6" r="3" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M3 15.5C3.8 12.8 6.1 11 9 11C11.9 11 14.2 12.8 15 15.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
   },
@@ -98,9 +98,9 @@ const secondaryNavItems: { id: Page; label: string; icon: React.ReactNode }[] = 
     id: "settings",
     label: "Settings",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M10 2L10.9 4.1L13.1 3.4L14.2 5.4L16.4 5.8L16.3 8.1L18 9.6L16.7 11.4L17.4 13.6L15.5 14.8L15.3 17.1L13 17.4L11.7 19.2L9.6 18.4L7.7 19.6L6.1 18.1L3.8 18.5L3.2 16.3L1.2 15.3L1.7 13L0.4 11.2L1.9 9.6L1.5 7.3L3.6 6.4L4.2 4.2L6.5 4.2L7.9 2.4L10 2Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" transform="translate(0.5 -0.5) scale(0.95)"/>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="2.2" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M9 1.8V3.6M9 14.4V16.2M1.8 9H3.6M14.4 9H16.2M3.9 3.9L5.2 5.2M12.8 12.8L14.1 14.1M14.1 3.9L12.8 5.2M5.2 12.8L3.9 14.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
   },
@@ -137,37 +137,30 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, 
       >
         <div className="sidebar-header">
           {!collapsed && (
-            <button type="button" className="sidebar-brand" onClick={() => handleNavigate("dashboard")}>
-              <span className="brand-icon">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M10 2L3 18H7L10 10L13 18H17L10 2Z" fill="white"/>
-                </svg>
-              </span>
-              <span className="brand-text">Plannora</span>
+            <button type="button" className="sidebar-brand-box" onClick={() => handleNavigate("dashboard")}>
+              <span className="brand-text">PLANNORA</span>
+              <span className="brand-subtext">Study Workspace</span>
             </button>
           )}
           {collapsed && (
-            <button type="button" className="sidebar-brand-collapsed" onClick={() => handleNavigate("dashboard")} aria-label="Go to dashboard">
-              <span className="brand-icon">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M10 2L3 18H7L10 10L13 18H17L10 2Z" fill="white"/>
-                </svg>
-              </span>
+            <button type="button" className="sidebar-brand-collapsed" onClick={() => handleNavigate("dashboard")} aria-label="Go to dashboard" title="Plannora Dashboard">
+              <div className="brand-icon-collapsed">P</div>
             </button>
           )}
           <button className="sidebar-toggle" onClick={onToggle} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               {collapsed ? (
-                <path d="M7 4L12 9L7 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 3.5L10.5 8L6 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
               ) : (
-                <path d="M11 4L6 9L11 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3.5L5.5 8L10 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
               )}
             </svg>
           </button>
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
+          <span className="sidebar-nav-label">Workspace</span>
+          {workspaceNavItems.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -177,11 +170,14 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, 
               title={collapsed ? item.label : undefined}
             >
               <span className="sidebar-link-icon">{item.icon}</span>
-              {!collapsed && <span className="sidebar-link-label">{item.label}</span>}
+              <span className="sidebar-link-label">{item.label}</span>
             </button>
           ))}
+
           <div className="sidebar-nav-divider" role="presentation" />
-          {secondaryNavItems.map((item) => (
+
+          <span className="sidebar-nav-label">Account</span>
+          {accountNavItems.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -191,7 +187,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, 
               title={collapsed ? item.label : undefined}
             >
               <span className="sidebar-link-icon">{item.icon}</span>
-              {!collapsed && <span className="sidebar-link-label">{item.label}</span>}
+              <span className="sidebar-link-label">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -228,17 +224,11 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, 
               title="Sign out"
               aria-label="Sign out"
             >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M6 2H4C3.45 2 3 2.45 3 3V15C3 15.55 3.45 16 4 16H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M12 9L16 9M16 9L14 7M16 9L14 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7 9H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M5 2H3.5C3.1 2 2.8 2.3 2.8 2.8V13.2C2.8 13.7 3.1 14 3.5 14H5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                <path d="M10.5 8H14.5M14.5 8L12.5 6M14.5 8L12.5 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-          )}
-          {!collapsed && (
-            <div className="sidebar-footer-text">
-              <span className="sidebar-version">Plannora v1.0</span>
-            </div>
           )}
         </div>
       </aside>

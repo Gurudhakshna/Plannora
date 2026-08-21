@@ -55,6 +55,9 @@ export default function Settings() {
     window.location.reload();
   }
 
+  const userDisplayName = user?.displayName || "User";
+  const userEmail = user?.email || "user@plannora.dev";
+
   return (
     <div className="settings-page">
       <section className="dash-section" aria-labelledby="settings-appearance-title">
@@ -63,27 +66,32 @@ export default function Settings() {
         </div>
         <fieldset className="theme-options">
           <legend className="visually-hidden">Choose theme</legend>
-          {THEME_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={preference === option.value}
-              className={`theme-option ${preference === option.value ? "active" : ""}`}
-              onClick={() => setTheme(option.value)}
-            >
-              <span className="theme-option-icon">{option.icon}</span>
-              <span className="theme-option-text">
-                <span className="theme-option-label">{option.label}</span>
-                <span className="theme-option-description">{option.description}</span>
-              </span>
-              <span className={`theme-option-check ${preference === option.value ? "checked" : ""}`} aria-hidden="true">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            </button>
-          ))}
+          {THEME_OPTIONS.map((option) => {
+            const isSelected = preference === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                className={`theme-option ${isSelected ? "active" : ""}`}
+                onClick={() => setTheme(option.value)}
+              >
+                <span className="theme-option-icon">{option.icon}</span>
+                <span className="theme-option-text">
+                  <span className="theme-option-label">{option.label}</span>
+                  <span className="theme-option-description">{option.description}</span>
+                </span>
+                <span className={`theme-option-check ${isSelected ? "checked" : ""}`} aria-hidden="true">
+                  {isSelected && (
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                      <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+              </button>
+            );
+          })}
         </fieldset>
         <p className="settings-hint">Your theme choice is saved on this device and applied instantly.</p>
       </section>
@@ -93,9 +101,9 @@ export default function Settings() {
           <h3 className="dash-section-title" id="settings-account-title">Account</h3>
         </div>
         <div className="settings-account-row">
-          <div>
-            <span className="settings-account-name">{user?.displayName || user?.email?.split("@")[0] || "User"}</span>
-            {user?.email && <span className="settings-account-email">{user.email}</span>}
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <span className="settings-account-name">{userDisplayName}</span>
+            <span className="settings-account-email">{userEmail}</span>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={() => logout()}>
             Sign out

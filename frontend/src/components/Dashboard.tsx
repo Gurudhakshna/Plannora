@@ -2,6 +2,7 @@ import type { Task, Page } from "../types/task";
 import type { StudyMaterial, AIStudyTask } from "../types/study-material";
 import { aiTaskToTask } from "../utils/aiTasks";
 import { getToday, toDateKey, formatDateKey, isOverdueDate } from "../utils/storage";
+import { useAuth } from "../hooks/useAuth";
 
 interface DashboardProps {
   tasks: Task[];
@@ -17,8 +18,21 @@ interface DashboardProps {
 
 const priorityOrder: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
 
-export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAddTask, onUpload, onViewNotes, onToggleAITask, onDeleteAITask }: DashboardProps) {
+export default function Dashboard({
+  tasks,
+  materials,
+  aiTasks,
+  onNavigate,
+  onAddTask,
+  onUpload,
+  onViewNotes,
+  onToggleAITask,
+  onDeleteAITask,
+}: DashboardProps) {
+  const { user } = useAuth();
+  const userName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const todayStr = getToday();
+
   const allTasks = [...tasks, ...aiTasks.map(aiTaskToTask)];
   const total = allTasks.length;
   const completed = allTasks.filter((t) => t.completed).length;
@@ -43,8 +57,6 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
   const recentMaterials = [...materials]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 5);
-
-  const hasAnyData = total > 0 || materials.length > 0;
 
   const analyzedCount = materials.filter((m) => m.analysisStatus === "analyzed").length;
 
@@ -71,77 +83,67 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
     return s;
   })();
 
-  if (!hasAnyData) {
-    return (
-      <div className="dashboard">
-        <section className="dashboard-hero">
-          <div className="hero-content">
-            <div className="hero-icon">
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true">
-                <rect x="4" y="8" width="48" height="40" rx="6" stroke="currentColor" strokeWidth="2" opacity="0.15"/>
-                <path d="M28 18V38M18 28H38" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.3"/>
-                <path d="M16 8L28 2L40 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>
-              </svg>
-            </div>
-            <h2 className="hero-title">Study smarter with your own notes</h2>
-            <p className="hero-subtitle">
-              Upload your notes or study materials and let Plannora turn them into focused study notes, tasks, and a personalized study plan.
-            </p>
-            <div className="hero-actions">
-              <button className="btn btn-primary btn-lg" onClick={() => onUpload("file")}>
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                  <rect x="2" y="6" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="M9 2V10M5 6L9 2L13 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Upload Notes / PDF
-              </button>
-              <button className="btn btn-secondary btn-lg" onClick={() => onUpload("text")}>
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                  <path d="M3 3H15M3 7H12M3 11H15M3 15H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-                Type Notes
-              </button>
-            </div>
-            <p className="hero-supported">PDF &bull; PNG &bull; JPG &bull; Multiple files &bull; Drag &amp; drop</p>
-          </div>
-        </section>
-      </div>
-    );
-  }
+  const hasAnyData = total > 0 || materials.length > 0;
 
   return (
     <div className="dashboard">
+      <div className="dashboard-header">
+        <h2 className="dashboard-greeting">Good day, {userName}</h2>
+        <p className="dashboard-subgreeting">
+          Here is what&apos;s happening with your study workload today.
+        </p>
+      </div>
+
+      {!hasAnyData && (
+        <div className="workspace-welcome-card">
+          <div className="workspace-welcome-info">
+            <h3>Welcome to your Plannora Study Workspace</h3>
+            <p>Import your study materials or add tasks to get started with AI-driven planning.</p>
+          </div>
+          <div className="hero-actions">
+            <button className="btn btn-primary" onClick={() => onUpload("file")}>
+              Upload Notes / PDF
+            </button>
+            <button className="btn btn-secondary" onClick={onAddTask}>
+              Add First Task
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 4-Card Compact Stat Grid */}
       <section className="dashboard-stats" aria-label="Study statistics">
-        <button type="button" className="dash-stat-card clickable" onClick={() => onNavigate("materials")}>
+        <button type="button" className="dash-stat-card clickable" onClick={() => onNavigate("tasks")}>
           <span className="dash-stat-icon dash-stat-total" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect x="3" y="3" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M7 8H15M7 11H15M7 14H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2.5" y="2.5" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M5.5 6.5H12.5M5.5 9H12.5M5.5 11.5H9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
           </span>
           <span className="dash-stat-info">
-            <span className="dash-stat-value">{materials.length}</span>
-            <span className="dash-stat-label">Materials</span>
+            <span className="dash-stat-value">{total}</span>
+            <span className="dash-stat-label">Total Tasks</span>
           </span>
         </button>
+
         <button type="button" className="dash-stat-card clickable" onClick={() => onNavigate("materials")}>
           <span className="dash-stat-icon dash-stat-completed" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <circle cx="11" cy="11" r="9" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M7 11L10 14L15 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M3.5 2H10.5L14.5 6V16H3.5V2Z" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M10.5 2V6H14.5" stroke="currentColor" strokeWidth="1.4"/>
             </svg>
           </span>
           <span className="dash-stat-info">
             <span className="dash-stat-value">{analyzedCount}</span>
-            <span className="dash-stat-label">Analyzed</span>
+            <span className="dash-stat-label">Materials Analyzed</span>
           </span>
         </button>
+
         <button type="button" className="dash-stat-card clickable" onClick={() => onNavigate("tasks")}>
           <span className="dash-stat-icon dash-stat-pending" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect x="3" y="3" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M7 11L10 14L15 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M7 7H15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="6.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M9 5.5V9L11.5 11.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
           </span>
           <span className="dash-stat-info">
@@ -149,36 +151,46 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
             <span className="dash-stat-label">Tasks Pending</span>
           </span>
         </button>
+
         <div className="dash-stat-card">
           <span className="dash-stat-icon dash-stat-rate" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <path d="M3 17V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M7 17V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M11 17V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M15 17V3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M2.5 14V11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M6.5 14V7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M10.5 14V4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M14.5 14V2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
           </span>
           <span className="dash-stat-info">
-            <span className="dash-stat-value">{percentage}%</span>
-            <span className="dash-stat-label">Completion</span>
+            <span className="dash-stat-value">{streak} <span style={{ fontSize: "12px", fontWeight: "normal" }}>days</span></span>
+            <span className="dash-stat-label">Study Streak</span>
           </span>
         </div>
       </section>
 
+      {/* Main Content Grid */}
       <div className="dashboard-grid">
         <div className="dashboard-main-col">
-          {focusTasks.length > 0 && (
-            <section className="dash-section dash-today-focus">
-              <div className="dash-section-header">
-                <h3 className="dash-section-title">
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5"/>
-                    <path d="M9 5V9L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  Today&apos;s Focus
-                </h3>
-                <span className="dash-section-count">{pendingAICount} pending</span>
+          {/* Today's Focus (Prominent Primary Section) */}
+          <section className="dash-section dash-today-focus">
+            <div className="dash-section-header">
+              <h3 className="dash-section-title prominent-title">
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6"/>
+                  <path d="M8 4.5V8L10.5 10.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+                Today&apos;s Focus
+              </h3>
+              <span className="dash-section-count">{pendingAICount} pending</span>
+            </div>
+            {focusTasks.length === 0 ? (
+              <div className="dash-empty-inline">
+                <p>No AI study suggestions generated yet.</p>
+                <button className="link-btn" onClick={() => onUpload("file")}>
+                  Upload study notes to analyze
+                </button>
               </div>
+            ) : (
               <div className="dash-task-list">
                 {focusTasks.map((t) => (
                   <div key={t.id} className={`dash-task-row ${t.completed ? "completed" : ""}`}>
@@ -189,7 +201,7 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
                       aria-label={t.completed ? `Mark "${t.title}" incomplete` : `Mark "${t.title}" complete`}
                     >
                       {t.completed && (
-                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                           <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
@@ -207,26 +219,27 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
                       onClick={() => onDeleteAITask(t.id)}
                       aria-label={`Dismiss "${t.title}"`}
                     >
-                      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                        <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                        <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                       </svg>
                     </button>
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            )}
+          </section>
 
+          {/* Overdue Tasks Alert Section */}
           {overdueTasks.length > 0 && (
             <section className="dash-section">
               <div className="dash-section-header">
                 <h3 className="dash-section-title">
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5"/>
-                    <path d="M9 5V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    <circle cx="9" cy="12" r="0.75" fill="currentColor"/>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/>
+                    <path d="M8 4.5V8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                    <circle cx="8" cy="10.5" r="0.75" fill="currentColor"/>
                   </svg>
-                  Overdue
+                  Overdue Tasks
                 </h3>
                 <span className="dash-section-badge badge-red">{overdueTasks.length}</span>
               </div>
@@ -245,14 +258,15 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
             </section>
           )}
 
-          <section className="dash-section">
+          {/* Scheduled Tasks for Today (Prominent Section) */}
+          <section className="dash-section dash-today-scheduled">
             <div className="dash-section-header">
-              <h3 className="dash-section-title">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                  <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="M9 5V9L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <h3 className="dash-section-title prominent-title">
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.6"/>
+                  <path d="M5 8L7 10L11 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
                 </svg>
-                Today&apos;s Tasks
+                Today&apos;s Scheduled Tasks
               </h3>
               {todayTasks.length > 0 && (
                 <span className="dash-section-count">{todayTasks.length} tasks</span>
@@ -273,19 +287,20 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
                       <span className="dash-task-subject">{t.subject}</span>
                     </div>
                     {t.duration && <span className="dash-task-duration">{t.duration}</span>}
-                    <span className={`dash-task-badge priority-${t.priority.toLowerCase()}`}>{t.priority}</span>
+                    <span className={`badge priority-${t.priority.toLowerCase()}`}>{t.priority}</span>
                   </div>
                 ))}
               </div>
             )}
           </section>
 
+          {/* Upcoming Deadlines */}
           <section className="dash-section">
             <div className="dash-section-header">
               <h3 className="dash-section-title">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                  <rect x="2" y="3" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="M6 1V4M12 1V4M2 8H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="2.5" y="3" width="11" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+                  <path d="M5 1.5V3.5M11 1.5V3.5M2.5 6.5H13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                 </svg>
                 Upcoming Deadlines
               </h3>
@@ -312,43 +327,53 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
           </section>
         </div>
 
+        {/* Right Column */}
         <div className="dashboard-side-col">
-          <section className="dash-section dash-progress-card">
+          {/* Overall Completion Ring Widget */}
+          <section className="dash-section">
             <div className="dash-section-header">
-              <h3 className="dash-section-title">Overall Progress</h3>
+              <h3 className="dash-section-title">Completion Rate</h3>
             </div>
             <div className="dash-progress-ring-wrap">
-              <svg className="dash-progress-ring" viewBox="0 0 120 120" role="img" aria-label={`${percentage}% of tasks completed`}>
-                <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke="var(--bg-inset)"/>
-                <circle
-                  cx="60" cy="60" r="50" fill="none" strokeWidth="8"
-                  stroke="var(--primary)"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 50}`}
-                  strokeDashoffset={`${2 * Math.PI * 50 * (1 - percentage / 100)}`}
-                  transform="rotate(-90 60 60)"
-                  style={{ transition: "stroke-dashoffset 0.5s ease" }}
-                />
+              <svg className="dash-progress-ring" viewBox="0 0 120 120" role="img" aria-label={`${percentage}% completed`}>
+                <circle cx="60" cy="60" r="45" fill="none" strokeWidth="7" stroke="var(--bg-inset)"/>
+                {percentage > 0 && (
+                  <circle
+                    cx="60" cy="60" r="45" fill="none" strokeWidth="7"
+                    stroke="var(--primary)"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 45}`}
+                    strokeDashoffset={`${2 * Math.PI * 45 * (1 - percentage / 100)}`}
+                    transform="rotate(-90 60 60)"
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                )}
               </svg>
-              <div className="dash-progress-ring-text">
+              <div className="dash-progress-ring-text" style={{ display: "flex", flexDirection: "column", opacity: percentage === 0 ? 0.6 : 1 }}>
                 <span className="dash-progress-pct">{percentage}%</span>
-                <span className="dash-progress-label">{completed} of {total}</span>
+                <span className="dash-progress-label">{completed} / {total} done</span>
               </div>
             </div>
           </section>
 
-          {recentMaterials.length > 0 && (
-            <section className="dash-section">
-              <div className="dash-section-header">
-                <h3 className="dash-section-title">
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <path d="M4 2H11L14 5V16H4V2Z" stroke="currentColor" strokeWidth="1.3"/>
-                    <path d="M11 2V5H14" stroke="currentColor" strokeWidth="1.3"/>
-                  </svg>
-                  Recent Materials
-                </h3>
-                <button className="link-btn" onClick={() => onNavigate("materials")}>View all</button>
+          {/* Recent Materials */}
+          <section className="dash-section">
+            <div className="dash-section-header">
+              <h3 className="dash-section-title">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3.5 2H10.5L14.5 6V14H3.5V2Z" stroke="currentColor" strokeWidth="1.4"/>
+                  <path d="M10.5 2V6H14.5" stroke="currentColor" strokeWidth="1.4"/>
+                </svg>
+                Recent Materials
+              </h3>
+              <button className="link-btn" onClick={() => onNavigate("materials")}>View all</button>
+            </div>
+            {recentMaterials.length === 0 ? (
+              <div className="dash-empty-inline">
+                <p>No study materials uploaded.</p>
+                <button className="link-btn" onClick={() => onUpload("file")}>Upload material</button>
               </div>
+            ) : (
               <div className="dash-task-list">
                 {recentMaterials.map((m) => {
                   const viewable = m.analysisStatus === "analyzed";
@@ -371,12 +396,13 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
                   );
                 })}
               </div>
-            </section>
-          )}
+            )}
+          </section>
 
+          {/* Weekly Progress Bar Summary */}
           <section className="dash-section">
             <div className="dash-section-header">
-              <h3 className="dash-section-title">Study Progress</h3>
+              <h3 className="dash-section-title">Weekly Activity</h3>
             </div>
             <div className="dash-study-progress">
               <div className="dash-progress-row">
@@ -387,49 +413,45 @@ export default function Dashboard({ tasks, materials, aiTasks, onNavigate, onAdd
                 <span className="dash-progress-row-value">{todayCompleted}/{todayTasks.length}</span>
               </div>
               <div className="dash-progress-row">
-                <span className="dash-progress-row-label">This week</span>
+                <span className="dash-progress-row-label">7 Days</span>
                 <div className="dash-progress-row-bar" role="img" aria-label={`${weekPct}% of this week's tasks completed`}>
                   <div className="dash-progress-row-fill" style={{ width: `${weekPct}%` }} />
                 </div>
                 <span className="dash-progress-row-value">{weekPct}%</span>
               </div>
-              <div className="dash-progress-row">
-                <span className="dash-progress-row-label">Streak</span>
-                <span className="dash-progress-row-streak">{streak} day{streak !== 1 ? "s" : ""}</span>
-              </div>
             </div>
           </section>
 
+          {/* Quick Actions Bar */}
           <section className="dash-section">
             <div className="dash-section-header">
               <h3 className="dash-section-title">Quick Actions</h3>
             </div>
             <div className="dash-quick-actions">
               <button className="dash-quick-btn" onClick={() => onUpload("file")}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M8 2V12M3 7L8 2L13 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 2V12M3 7L8 2L13 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Upload Notes
               </button>
-              <button className="dash-quick-btn" onClick={() => onUpload("file")} title="Analyze a material to generate a study plan">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M9 1L2 15H6L9 7L12 15H16L9 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              <button className="dash-quick-btn" onClick={() => onAddTask()}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                 </svg>
-                Generate Plan
+                Add Task
               </button>
-              <button className="dash-quick-btn" onClick={() => onNavigate("tasks")}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3"/>
-                  <path d="M5 8L7 10L11 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              <button className="dash-quick-btn" onClick={() => onNavigate("plan")}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 3.5C3 2.67 3.67 2 4.5 2H13.5C14.33 2 15 2.67 15 3.5V16L9 12.5L3 16V3.5Z" stroke="currentColor" strokeWidth="1.4"/>
                 </svg>
-                View AI Tasks
+                View Plan
               </button>
               <button className="dash-quick-btn" onClick={() => onNavigate("calendar")}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.3"/>
-                  <path d="M5 1.5V4M11 1.5V4M2 7H14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+                  <path d="M5 1.5V3.5M11 1.5V3.5M2 6.5H14" stroke="currentColor" strokeWidth="1.4"/>
                 </svg>
-                Open Calendar
+                Calendar
               </button>
             </div>
           </section>

@@ -74,7 +74,7 @@ export default function Calendar({ tasks }: CalendarProps) {
       <div className="calendar-container">
         <div className="calendar-header">
           <button className="calendar-nav-btn" onClick={prevMonth} aria-label="Previous month">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M12 5L7 10L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
@@ -82,7 +82,7 @@ export default function Calendar({ tasks }: CalendarProps) {
           <div className="calendar-header-actions">
             <button className="btn btn-secondary btn-sm" onClick={goToToday}>Today</button>
             <button className="calendar-nav-btn" onClick={nextMonth} aria-label="Next month">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -130,7 +130,7 @@ export default function Calendar({ tasks }: CalendarProps) {
           <span className="legend-item"><span className="legend-dot dot-high" />High priority</span>
           <span className="legend-item"><span className="legend-dot dot-medium" />Medium</span>
           <span className="legend-item"><span className="legend-dot dot-low" />Low</span>
-          <span className="legend-item"><span className="legend-dot legend-done" />Completed</span>
+          <span className="legend-item"><span className="legend-dot dot-done" />Completed</span>
         </div>
       </div>
 
@@ -152,7 +152,7 @@ export default function Calendar({ tasks }: CalendarProps) {
                     {t.source === "ai" && " \u00b7 AI"}
                   </span>
                 </div>
-                <span className={`sidebar-task-priority priority-${t.priority.toLowerCase()}`}>
+                <span className={`badge priority-${t.priority.toLowerCase()}`}>
                   {t.priority}
                 </span>
               </li>

@@ -22,15 +22,40 @@ export default function StudyPlanSetup() {
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
-    if (!studyGoal.trim()) newErrors.studyGoal = "Study goal is required";
-    if (!subjects.trim()) newErrors.subjects = "At least one subject is required";
-    if (!targetExam.trim()) newErrors.targetExam = "Target exam/course is required";
+    const trimmedGoal = studyGoal.trim();
+    const trimmedSubjects = subjects.trim();
+    const trimmedExam = targetExam.trim();
+    const trimmedHours = dailyHours.trim();
+
+    if (!trimmedGoal) {
+      newErrors.studyGoal = "Study goal is required";
+    } else if (trimmedGoal.length < 3) {
+      newErrors.studyGoal = "Study goal must be at least 3 characters long";
+    }
+
+    if (!trimmedSubjects) {
+      newErrors.subjects = "At least one subject is required";
+    } else if (trimmedSubjects.length < 2) {
+      newErrors.subjects = "Please enter valid subject names (min 2 characters)";
+    }
+
+    if (!trimmedExam) {
+      newErrors.targetExam = "Target exam/course is required";
+    } else if (trimmedExam.length < 2) {
+      newErrors.targetExam = "Target exam must be at least 2 characters long";
+    }
+
     if (!startDate) newErrors.startDate = "Start date is required";
-    if (!endDate) newErrors.endDate = "End date is required";
-    if (!dailyHours.trim()) newErrors.dailyHours = "Daily study hours is required";
-    if (startDate && endDate && endDate < startDate) {
+    if (!endDate) {
+      newErrors.endDate = "End date is required";
+    } else if (startDate && endDate && endDate < startDate) {
       newErrors.endDate = "End date must be after start date";
     }
+
+    if (!trimmedHours) {
+      newErrors.dailyHours = "Daily study hours is required";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -39,12 +64,14 @@ export default function StudyPlanSetup() {
     e.preventDefault();
     if (!validate() || !user) return;
 
+    const validSubjects = subjects
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 2);
+
     saveStudyPlan({
       studyGoal: studyGoal.trim(),
-      subjects: subjects
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      subjects: validSubjects.length > 0 ? validSubjects : [subjects.trim()],
       targetExam: targetExam.trim(),
       startDate,
       endDate,
@@ -70,12 +97,7 @@ export default function StudyPlanSetup() {
       <div className="setup-card">
         <div className="setup-header">
           <div className="login-brand">
-            <div className="brand-icon login-brand-icon">
-              <svg width="24" height="24" viewBox="0 0 20 20" fill="none">
-                <path d="M10 2L3 18H7L10 10L13 18H17L10 2Z" fill="white" />
-              </svg>
-            </div>
-            <span className="login-brand-text">Plannora</span>
+            <span className="login-brand-text">PLANNORA</span>
           </div>
           <h1 className="setup-title">Create Your Study Plan</h1>
           <p className="setup-subtitle">
@@ -117,7 +139,7 @@ export default function StudyPlanSetup() {
               type="text"
               value={targetExam}
               onChange={(e) => setTargetExam(e.target.value)}
-              placeholder="e.g. JEE Main 2026"
+              placeholder="e.g. Computer Science Finals"
               className={errors.targetExam ? "input-error" : ""}
             />
             {errors.targetExam && <span className="error-text">{errors.targetExam}</span>}
@@ -227,8 +249,8 @@ export default function StudyPlanSetup() {
             />
           </div>
 
-          <div className="modal-actions">
-            <button type="submit" className="btn btn-primary btn-lg setup-submit">
+          <div className="modal-actions" style={{ borderTop: "none" }}>
+            <button type="submit" className="btn btn-primary btn-lg" style={{ width: "100%" }}>
               Create Study Plan
             </button>
           </div>
