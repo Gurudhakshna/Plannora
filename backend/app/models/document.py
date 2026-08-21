@@ -23,6 +23,7 @@ class Document(Base):
     # Relationships
     owner = relationship("User", back_populates="documents")
     subject = relationship("Subject", back_populates="documents")
+    chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Document id={self.id} filename={self.filename!r}>"

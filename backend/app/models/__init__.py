@@ -10,3 +10,5 @@ from app.models.quiz import Quiz, QuizQuestion, QuizResult  # noqa: F401
 from app.models.flashcard import Flashcard  # noqa: F401
 from app.models.exam import Exam, ExamQuestion, ExamResult  # noqa: F401
 from app.models.planner import PlannerItem  # noqa: F401
+from app.models.document_chunk import DocumentChunk  # noqa: F401
+from app.models.chat_message import ChatMessage  # noqa: F401
