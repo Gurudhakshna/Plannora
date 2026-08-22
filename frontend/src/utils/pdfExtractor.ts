@@ -9,6 +9,10 @@ export interface PDFExtractionResult {
   charCount: number;
 }
 
+interface PDFTextItem {
+  str?: string;
+}
+
 export async function extractTextFromPDF(file: File): Promise<PDFExtractionResult> {
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -20,7 +24,12 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
-        .map((item: any) => (typeof item.str === "string" ? item.str : ""))
+        .map((item: PDFTextItem | unknown) => {
+          if (item && typeof item === "object" && "str" in item && typeof (item as PDFTextItem).str === "string") {
+            return (item as PDFTextItem).str;
+          }
+          return "";
+        })
         .join(" ");
       fullText += pageText + "\n\n";
     }
@@ -38,12 +47,13 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
       pageCount: pdf.numPages,
       charCount: cleanText.length,
     };
-  } catch (err: any) {
-    if (err.message && err.message.includes("OCR")) {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes("OCR")) {
       throw err;
     }
     throw new Error(
-      "This PDF does not contain extractable text. OCR is required for scanned/image-only PDFs."
+      "This PDF does not contain extractable text. OCR is required for scanned/image-only PDFs.",
+      { cause: err }
     );
   }
 }

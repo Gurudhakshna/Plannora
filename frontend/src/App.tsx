@@ -285,8 +285,8 @@ export default function App() {
         errorDetails: undefined,
       }));
       setToast(`"${analysis.materialTitle}" analyzed — ${newTasks.length} concept-specific tasks created.`);
-    } catch (err: any) {
-      const errMsg = err?.message || "AI analysis failed. Please try again.";
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "AI analysis failed. Please try again.";
       setDebugData((prev) => ({ ...prev, status: "ERROR", errorDetails: errMsg }));
       setAnalysisError(errMsg);
       updateMaterials((prev) =>
@@ -320,8 +320,8 @@ export default function App() {
           charCount: extraction.charCount,
           snippet: extraction.text.slice(0, 300) + "...",
         }));
-      } catch (e: any) {
-        const errMsg = e?.message || "This PDF does not contain extractable text. OCR is required for scanned/image-only PDFs.";
+      } catch (e: unknown) {
+        const errMsg = e instanceof Error ? e.message : "This PDF does not contain extractable text. OCR is required for scanned/image-only PDFs.";
         setDebugData((prev) => ({ ...prev, status: "ERROR", errorDetails: errMsg }));
         setAnalysisError(errMsg);
         return;
