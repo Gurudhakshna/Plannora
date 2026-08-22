@@ -8,7 +8,9 @@ import {
   loadAITasks, saveAITasks,
   loadAIPlan, saveAIPlan, clearAIPlan,
 } from "./utils/storage";
-import { generateId, extractTopic, generateMockNotes, generateMockTasks, generateMockPlan } from "./utils/mockAI";
+import { generateId, extractTopic, generateMockNotes } from "./utils/mockAI";
+import { analyzeContent, analysisToNotes, analysisToTasks, analysisToPlan } from "./utils/aiEngine";
+import { extractTextFromPDF } from "./utils/pdfExtractor";
 import { aiTaskToTask } from "./utils/aiTasks";
 import { useAuth } from "./hooks/useAuth";
 import { useTheme } from "./context/ThemeContext";
@@ -23,7 +25,10 @@ import AnalyzingOverlay from "./components/AnalyzingOverlay";
 import ErrorBanner from "./components/ErrorBanner";
 import MaterialsList from "./components/MaterialsList";
 import AINotesView from "./components/AINotesView";
-import StudyPlanView from "./components/StudyPlanView";
+import StudyGuide from "./components/StudyGuide";
+import TeachMePanel from "./components/TeachMePanel";
+import DebugInfoBar, { type DebugState } from "./components/DebugInfoBar";
+import type { DetectedConcept } from "./types/study-material";
 import Profile from "./components/Profile";
 import Settings from "./components/Settings";
 
@@ -57,10 +62,69 @@ export default function App() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [viewingNotes, setViewingNotes] = useState<AIStudyNotes | null>(null);
+  const [teachingConcept, setTeachingConcept] = useState<{ concept: DetectedConcept; materialTitle: string } | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadInitialMode, setUploadInitialMode] = useState<"file" | "text">("file");
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [debugData, setDebugData] = useState<DebugState>({ status: "IDLE" });
+
+  function handleTeachConcept(conceptName: string, materialTitle?: string) {
+    let foundConcept: DetectedConcept | null = null;
+    let title = materialTitle || materials[0]?.title || "Study Material";
+
+    for (const note of aiNotes) {
+      if (note.concepts && note.concepts.length > 0) {
+        const match = note.concepts.find(
+          (c) =>
+            c.name.toLowerCase() === conceptName.toLowerCase() ||
+            conceptName.toLowerCase().includes(c.name.toLowerCase()) ||
+            c.name.toLowerCase().includes(conceptName.toLowerCase())
+        );
+        if (match) {
+          foundConcept = match;
+          title = note.topic;
+          break;
+        }
+      }
+    }
+
+    if (!foundConcept) {
+      const activeNotes = aiNotes.find((n) => n.topic === title) || aiNotes[0];
+      const matchedDef = activeNotes?.definitions?.find(
+        (d) =>
+          d.term.toLowerCase() === conceptName.toLowerCase() ||
+          conceptName.toLowerCase().includes(d.term.toLowerCase())
+      );
+
+      foundConcept = {
+        name: conceptName,
+        priority: "high",
+        category: "concept",
+        estimatedMinutes: 15,
+        dependencies: [],
+        simpleExplanation: matchedDef
+          ? matchedDef.definition
+          : `Core concept covering ${conceptName} from ${title}.`,
+        detailedExplanation: activeNotes?.summary
+          ? `${activeNotes.summary} This section focuses specifically on ${conceptName}.`
+          : `Thorough breakdown of ${conceptName} from your uploaded study material.`,
+        example: activeNotes?.examples?.[0]?.detail || `Applying ${conceptName} in practical scenarios.`,
+        commonMistake: activeNotes?.commonMistakes?.[0] || `Confusing ${conceptName} with adjacent topics.`,
+        keyTakeaway: activeNotes?.importantPoints?.[0] || `Master the core principles of ${conceptName}.`,
+        analogy: `Think of ${conceptName} in terms of structured real-world workflows.`,
+        miniQuestion: `What is the primary function of ${conceptName}?`,
+        miniQuestionAnswer: matchedDef ? matchedDef.definition : `Refer to the section on ${conceptName} in your notes.`,
+        status: "not-started",
+      };
+    }
+
+    setTeachingConcept({ concept: foundConcept, materialTitle: title });
+  }
+
+  function handleMarkConceptUnderstood(conceptName: string) {
+    setToast(`"${conceptName}" marked as Understood! Progress updated.`);
+  }
 
   const [loadedUserId, setLoadedUserId] = useState<string | null>(user?.uid ?? null);
   if ((user?.uid ?? null) !== loadedUserId) {
@@ -185,30 +249,46 @@ export default function App() {
     setShowUploadModal(true);
   }
 
-  async function analyzeMaterial(materialId: string, topic: string) {
+  async function analyzeMaterial(materialId: string, topic: string, contentText?: string, filename?: string) {
     if (!user) return;
     try {
+      if (!contentText || contentText.trim().length < 30) {
+        const errMsg = "This PDF does not contain extractable text. OCR is required for scanned/image-only PDFs.";
+        setDebugData((prev) => ({ ...prev, status: "ERROR", errorDetails: errMsg }));
+        throw new Error(errMsg);
+      }
+
+      setDebugData((prev) => ({ ...prev, status: "ANALYZING" }));
       updateMaterials((prev) =>
         prev.map((m) => m.id === materialId ? { ...m, analysisStatus: "analyzing" as const } : m)
       );
 
-      await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));
+      const analysis = await analyzeContent(contentText, filename || topic);
 
-      const notes = generateMockNotes(topic, materialId, user.uid);
-      const newTasks = generateMockTasks(topic, materialId, user.uid);
-      const plan = generateMockPlan(topic, materialId, user.uid);
+      const notes = analysisToNotes(analysis, materialId, user.uid);
+      const newTasks = analysisToTasks(analysis, materialId, user.uid);
+      const plan = analysisToPlan(analysis, materialId, user.uid);
 
-      updateAINotes((prev) => [...prev, notes]);
-      updateAITasks((prev) => [...prev, ...newTasks]);
+      updateAINotes((prev) => [...prev.filter((n) => n.materialId !== materialId), notes]);
+      updateAITasks((prev) => [...prev.filter((t) => t.materialId !== materialId), ...newTasks]);
       setAIPlan(plan);
       saveAIPlan(user.uid, plan);
 
       updateMaterials((prev) =>
         prev.map((m) => m.id === materialId ? { ...m, analysisStatus: "analyzed" as const, hasNotes: true, hasTasks: true } : m)
       );
-      setToast(`"${topic}" analyzed — notes, tasks and a study plan are ready.`);
-    } catch {
-      setAnalysisError("Unable to analyze this material right now. Please try again.");
+
+      setDebugData((prev) => ({
+        ...prev,
+        status: "SUCCESS",
+        conceptCount: analysis.concepts?.length || 0,
+        errorDetails: undefined,
+      }));
+      setToast(`"${analysis.materialTitle}" analyzed — ${newTasks.length} concept-specific tasks created.`);
+    } catch (err: any) {
+      const errMsg = err?.message || "AI analysis failed. Please try again.";
+      setDebugData((prev) => ({ ...prev, status: "ERROR", errorDetails: errMsg }));
+      setAnalysisError(errMsg);
       updateMaterials((prev) =>
         prev.map((m) => m.id === materialId ? { ...m, analysisStatus: "failed" as const } : m)
       );
@@ -221,8 +301,42 @@ export default function App() {
     if (!user) return;
     setAnalysisError(null);
     setShowUploadModal(false);
-    setIsAnalyzing(true);
 
+    const firstFile = files[0];
+    let extractedText = "";
+
+    setDebugData({
+      filename: firstFile?.name || "Uploaded PDF",
+      status: "EXTRACTING",
+      apiUrl: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1/analyze/text",
+    });
+
+    if (firstFile?.file && (firstFile.type.includes("pdf") || firstFile.name.endsWith(".pdf"))) {
+      try {
+        const extraction = await extractTextFromPDF(firstFile.file);
+        extractedText = extraction.text;
+        setDebugData((prev) => ({
+          ...prev,
+          charCount: extraction.charCount,
+          snippet: extraction.text.slice(0, 300) + "...",
+        }));
+      } catch (e: any) {
+        const errMsg = e?.message || "This PDF does not contain extractable text. OCR is required for scanned/image-only PDFs.";
+        setDebugData((prev) => ({ ...prev, status: "ERROR", errorDetails: errMsg }));
+        setAnalysisError(errMsg);
+        return;
+      }
+    }
+
+    if (!extractedText || extractedText.trim().length < 30) {
+      const errMsg = "This PDF does not contain extractable text. OCR is required for scanned/image-only PDFs.";
+      setDebugData((prev) => ({ ...prev, status: "ERROR", errorDetails: errMsg }));
+      setAnalysisError(errMsg);
+      return;
+    }
+
+    setIsAnalyzing(true);
+    const topic = extractTopic(files.map((f) => f.name).join(" "));
     const newMaterial: StudyMaterial = {
       id: generateId(),
       title: files.map((f) => f.name).join(", "),
@@ -230,7 +344,7 @@ export default function App() {
       fileName: files[0]?.name,
       fileType: files[0]?.type,
       fileSize: files[0]?.size,
-      content: "",
+      content: extractedText,
       createdAt: new Date().toISOString(),
       userId: user.uid,
       analysisStatus: "uploaded",
@@ -239,18 +353,33 @@ export default function App() {
     };
 
     updateMaterials((prev) => [...prev, newMaterial]);
-    await analyzeMaterial(newMaterial.id, extractTopic(files.map((f) => f.name).join(" ")));
+    await analyzeMaterial(newMaterial.id, topic, extractedText, firstFile?.name);
   }
 
   async function handleTextReady(text: string, title: string) {
     if (!user) return;
     setAnalysisError(null);
+
+    if (!text || text.trim().length < 30) {
+      const errMsg = "Please enter at least 30 characters of study notes to analyze.";
+      setAnalysisError(errMsg);
+      return;
+    }
+
+    setDebugData({
+      filename: title || "Typed Notes",
+      charCount: text.length,
+      snippet: text.slice(0, 300) + "...",
+      status: "ANALYZING",
+      apiUrl: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1/analyze/text",
+    });
+
     setShowUploadModal(false);
     setIsAnalyzing(true);
 
     const newMaterial: StudyMaterial = {
       id: generateId(),
-      title,
+      title: title || "Untitled Notes",
       type: "text",
       content: text,
       createdAt: new Date().toISOString(),
@@ -261,7 +390,7 @@ export default function App() {
     };
 
     updateMaterials((prev) => [...prev, newMaterial]);
-    await analyzeMaterial(newMaterial.id, title);
+    await analyzeMaterial(newMaterial.id, title, text, title);
   }
 
   function handleViewNotes(materialId: string) {
@@ -290,7 +419,7 @@ export default function App() {
     setAnalysisError(null);
     const material = materials.find((m) => m.id === materialId);
     const topic = material?.title || "Study Material";
-    await analyzeMaterial(materialId, topic);
+    await analyzeMaterial(materialId, topic, material?.content, material?.fileName || material?.title);
   }
 
   function handleToggleTheme() {
@@ -369,16 +498,18 @@ export default function App() {
               tasks={tasks}
               materials={materials}
               aiTasks={aiTasks}
+              aiNotes={aiNotes}
               onNavigate={handleNavigate}
               onAddTask={handleAddTask}
               onUpload={handleUpload}
               onViewNotes={handleViewNotes}
               onToggleAITask={handleToggleAITask}
               onDeleteAITask={handleDeleteAITask}
+              onTeachConcept={handleTeachConcept}
             />
           )}
           {currentPage === "plan" && (
-            <StudyPlanView plan={aiPlan} onUpload={handleUpload} />
+            <StudyGuide plan={aiPlan} onUpload={handleUpload} onTeachConcept={handleTeachConcept} />
           )}
           {currentPage === "materials" && (
             <MaterialsList
@@ -444,10 +575,20 @@ export default function App() {
                   setViewingNotes(regenerated);
                 }
               }}
+              onTeachConcept={handleTeachConcept}
             />
           </div>
         </div>
       )}
+      {teachingConcept && (
+        <TeachMePanel
+          concept={teachingConcept.concept}
+          materialTitle={teachingConcept.materialTitle}
+          onClose={() => setTeachingConcept(null)}
+          onMarkUnderstood={handleMarkConceptUnderstood}
+        />
+      )}
+      <DebugInfoBar debugData={debugData} />
       {toast && (
         <div className="toast" role="status" aria-live="polite">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

@@ -6,9 +6,16 @@ interface AINotesViewProps {
   onClose: () => void;
   onSave: () => void;
   onRegenerate: () => void;
+  onTeachConcept?: (conceptName: string) => void;
 }
 
-export default function AINotesView({ notes, onClose, onSave, onRegenerate }: AINotesViewProps) {
+export default function AINotesView({
+  notes,
+  onClose,
+  onSave,
+  onRegenerate,
+  onTeachConcept,
+}: AINotesViewProps) {
   const [focusMode, setFocusMode] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -22,16 +29,65 @@ export default function AINotesView({ notes, onClose, onSave, onRegenerate }: AI
 
   function buildPlainText(n: AIStudyNotes): string {
     const lines: string[] = [];
-    lines.push(`# ${n.topic}`);
+    lines.push(`# ${n.topic} — Teaching Notes`);
     lines.push("");
-    if (n.summary) { lines.push("## Summary"); lines.push(n.summary); lines.push(""); }
-    if (n.keyConcepts.length) { lines.push("## Key Concepts"); n.keyConcepts.forEach((c) => lines.push(`- ${c}`)); lines.push(""); }
-    if (n.definitions.length) { lines.push("## Definitions"); n.definitions.forEach((d) => lines.push(`- **${d.term}**: ${d.definition}`)); lines.push(""); }
-    if (n.formulas.length) { lines.push("## Formulas"); n.formulas.forEach((f) => lines.push(`- **${f.name}**: ${f.formula}`)); lines.push(""); }
-    if (n.importantPoints.length) { lines.push("## Important Points"); n.importantPoints.forEach((p) => lines.push(`- ${p}`)); lines.push(""); }
-    if (n.examples.length) { lines.push("## Examples"); n.examples.forEach((e) => lines.push(`### ${e.title}\n${e.detail}`)); lines.push(""); }
-    if (n.quickRevision.length) { lines.push("## Quick Revision"); n.quickRevision.forEach((r) => lines.push(`- ${r}`)); lines.push(""); }
-    if (n.thingsToRemember.length) { lines.push("## Things to Remember"); n.thingsToRemember.forEach((t) => lines.push(`- ${t}`)); }
+
+    if (n.executiveSummary || n.summary) {
+      lines.push("## Executive Summary");
+      lines.push(n.executiveSummary || n.summary);
+      lines.push("");
+    }
+
+    if (n.keyConcepts.length) {
+      lines.push("## Key Concepts");
+      n.keyConcepts.forEach((c) => lines.push(`- ${c}`));
+      lines.push("");
+    }
+
+    if (n.definitions.length) {
+      lines.push("## Important Definitions");
+      n.definitions.forEach((d) => lines.push(`- **${d.term}**: ${d.definition}`));
+      lines.push("");
+    }
+
+    if (n.stepByStepExplanations && n.stepByStepExplanations.length) {
+      lines.push("## Step-by-Step Explanations");
+      n.stepByStepExplanations.forEach((ex) => {
+        lines.push(`### ${ex.topic}`);
+        ex.steps.forEach((s, idx) => lines.push(`${idx + 1}. ${s}`));
+      });
+      lines.push("");
+    }
+
+    if (n.examples.length) {
+      lines.push("## Worked Examples");
+      n.examples.forEach((e) => lines.push(`### ${e.title}\n${e.detail}`));
+      lines.push("");
+    }
+
+    if (n.commonMistakes && n.commonMistakes.length) {
+      lines.push("## Common Mistakes to Avoid");
+      n.commonMistakes.forEach((m) => lines.push(`- ⚠️ ${m}`));
+      lines.push("");
+    }
+
+    if (n.memoryTricks && n.memoryTricks.length) {
+      lines.push("## Memory Tricks & Mnemonics");
+      n.memoryTricks.forEach((m) => lines.push(`- 💡 ${m}`));
+      lines.push("");
+    }
+
+    if (n.examFocusedNotes && n.examFocusedNotes.length) {
+      lines.push("## Exam-Focused Notes");
+      n.examFocusedNotes.forEach((e) => lines.push(`- 🎯 ${e}`));
+      lines.push("");
+    }
+
+    if (n.quickRevision.length) {
+      lines.push("## Quick Revision Section");
+      n.quickRevision.forEach((r) => lines.push(`- ${r}`));
+    }
+
     return lines.join("\n");
   }
 
@@ -47,40 +103,15 @@ export default function AINotesView({ notes, onClose, onSave, onRegenerate }: AI
           </button>
           <div className="notes-view-actions">
             <button className="btn btn-secondary" onClick={handleCopy}>
-              {copied ? (
-                <>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M3 7L6 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Copied
-                </>
-              ) : (
-                <>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
-                    <path d="M10 4V3C10 2.45 9.55 2 9 2H3C2.45 2 2 2.45 2 3V9C2 9.55 2.45 10 3 10H4" stroke="currentColor" strokeWidth="1.3"/>
-                  </svg>
-                  Copy
-                </>
-              )}
+              {copied ? "✓ Copied" : "Copy Notes"}
             </button>
             <button className="btn btn-secondary" onClick={onRegenerate}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M11.5 2.5C10.5 1.5 9 1 7.5 1C4.5 1 2 3.5 2 6.5S4.5 12 7.5 12C10 12 12 10.5 12.5 8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                <path d="M11.5 1V5H7.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
               Regenerate
             </button>
             <button className="btn btn-secondary" onClick={() => setFocusMode(true)}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M1 5V2.5C1 1.67 1.67 1 2.5 1H5M9 1H11.5C12.33 1 13 1.67 13 2.5V5M13 9V11.5C13 12.33 12.33 13 11.5 13H9M5 13H2.5C1.67 13 1 12.33 1 11.5V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-              </svg>
-              Focus
+              Focus Mode
             </button>
             <button className="btn btn-primary" onClick={onSave}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
               Done
             </button>
           </div>
@@ -89,35 +120,49 @@ export default function AINotesView({ notes, onClose, onSave, onRegenerate }: AI
 
       {focusMode && (
         <button className="notes-focus-exit" onClick={() => setFocusMode(false)}>
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M13.5 4.5L4.5 13.5M4.5 4.5L13.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-          Exit Focus Mode
+          ✕ Exit Focus Mode
         </button>
       )}
 
       <div className="notes-content">
+        <div className="notes-meta-badge">TEACHING NOTES &bull; CONTENT-AWARE</div>
         <h1 className="notes-topic-title">{notes.topic}</h1>
 
-        {notes.summary && (
+        {/* 1. Executive Summary */}
+        {(notes.executiveSummary || notes.summary) && (
           <section className="notes-section">
-            <h2 className="notes-section-title">Summary</h2>
-            <p className="notes-summary">{notes.summary}</p>
+            <h2 className="notes-section-title">Executive Summary</h2>
+            <p className="notes-summary">{notes.executiveSummary || notes.summary}</p>
           </section>
         )}
 
+        {/* 2. Key Concepts (with Teach Me actions) */}
         {notes.keyConcepts.length > 0 && (
           <section className="notes-section">
-            <h2 className="notes-section-title">Key Concepts</h2>
-            <ul className="notes-list notes-concepts">
-              {notes.keyConcepts.map((c, i) => <li key={i}>{c}</li>)}
-            </ul>
+            <h2 className="notes-section-title">Key Concepts Detected</h2>
+            <div className="notes-concepts-grid">
+              {notes.keyConcepts.map((concept, i) => (
+                <div key={i} className="notes-concept-card">
+                  <span className="concept-card-name">{concept}</span>
+                  {onTeachConcept && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => onTeachConcept(concept)}
+                    >
+                      Teach Me →
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
+        {/* 3. Important Definitions */}
         {notes.definitions.length > 0 && (
           <section className="notes-section">
-            <h2 className="notes-section-title">Definitions</h2>
+            <h2 className="notes-section-title">Important Definitions</h2>
             <div className="notes-definitions">
               {notes.definitions.map((d, i) => (
                 <div key={i} className="notes-def-item">
@@ -129,32 +174,45 @@ export default function AINotesView({ notes, onClose, onSave, onRegenerate }: AI
           </section>
         )}
 
+        {/* 4. Formulas / Algorithms */}
         {notes.formulas.length > 0 && (
           <section className="notes-section">
-            <h2 className="notes-section-title">Formulas</h2>
+            <h2 className="notes-section-title">Formulas & Algorithms</h2>
             <div className="notes-formulas">
               {notes.formulas.map((f, i) => (
                 <div key={i} className="notes-formula-item">
                   <span className="notes-formula-name">{f.name}</span>
                   <code className="notes-formula-code">{f.formula}</code>
+                  {f.when && <span className="notes-formula-when">When: {f.when}</span>}
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {notes.importantPoints.length > 0 && (
+        {/* 5. Step-by-Step Explanations */}
+        {notes.stepByStepExplanations && notes.stepByStepExplanations.length > 0 && (
           <section className="notes-section">
-            <h2 className="notes-section-title">Important Points</h2>
-            <ul className="notes-list notes-points">
-              {notes.importantPoints.map((p, i) => <li key={i}>{p}</li>)}
-            </ul>
+            <h2 className="notes-section-title">Step-by-Step Explanations</h2>
+            <div className="notes-explanations-list">
+              {notes.stepByStepExplanations.map((item, idx) => (
+                <div key={idx} className="notes-explanation-box">
+                  <h4>{item.topic}</h4>
+                  <ol className="explanation-steps">
+                    {item.steps.map((step, sIdx) => (
+                      <li key={sIdx}>{step}</li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
+        {/* 6. Worked Examples */}
         {notes.examples.length > 0 && (
           <section className="notes-section">
-            <h2 className="notes-section-title">Examples</h2>
+            <h2 className="notes-section-title">Worked Examples</h2>
             <div className="notes-examples">
               {notes.examples.map((ex, i) => (
                 <div key={i} className="notes-example-item">
@@ -166,20 +224,50 @@ export default function AINotesView({ notes, onClose, onSave, onRegenerate }: AI
           </section>
         )}
 
-        {notes.quickRevision.length > 0 && (
-          <section className="notes-section notes-section-revision">
-            <h2 className="notes-section-title">Quick Revision</h2>
-            <ul className="notes-list notes-revision">
-              {notes.quickRevision.map((r, i) => <li key={i}>{r}</li>)}
+        {/* 7. Common Mistakes */}
+        {notes.commonMistakes && notes.commonMistakes.length > 0 && (
+          <section className="notes-section notes-section-warning">
+            <h2 className="notes-section-title">⚠️ Common Mistakes to Avoid</h2>
+            <ul className="notes-list notes-mistakes">
+              {notes.commonMistakes.map((m, i) => (
+                <li key={i}>{m}</li>
+              ))}
             </ul>
           </section>
         )}
 
-        {notes.thingsToRemember.length > 0 && (
-          <section className="notes-section notes-section-remember">
-            <h2 className="notes-section-title">Things to Remember</h2>
-            <ul className="notes-list notes-remember">
-              {notes.thingsToRemember.map((t, i) => <li key={i}>{t}</li>)}
+        {/* 8. Memory Tricks */}
+        {notes.memoryTricks && notes.memoryTricks.length > 0 && (
+          <section className="notes-section notes-section-tricks">
+            <h2 className="notes-section-title">💡 Memory Tricks & Mnemonics</h2>
+            <ul className="notes-list notes-tricks">
+              {notes.memoryTricks.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* 9. Exam-Focused Notes */}
+        {notes.examFocusedNotes && notes.examFocusedNotes.length > 0 && (
+          <section className="notes-section notes-section-exam">
+            <h2 className="notes-section-title">🎯 Exam-Focused Key Points</h2>
+            <ul className="notes-list notes-exam">
+              {notes.examFocusedNotes.map((note, i) => (
+                <li key={i}>{note}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* 10. Quick Revision Section */}
+        {notes.quickRevision.length > 0 && (
+          <section className="notes-section notes-section-revision">
+            <h2 className="notes-section-title">⚡ Quick Revision Checklist</h2>
+            <ul className="notes-list notes-revision">
+              {notes.quickRevision.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
             </ul>
           </section>
         )}

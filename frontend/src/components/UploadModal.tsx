@@ -10,7 +10,13 @@ interface UploadModalProps {
   initialMode?: "file" | "text";
 }
 
-export default function UploadModal({ onClose, onFilesReady, onTextReady, isAnalyzing, initialMode = "file" }: UploadModalProps) {
+export default function UploadModal({
+  onClose,
+  onFilesReady,
+  onTextReady,
+  isAnalyzing,
+  initialMode = "file",
+}: UploadModalProps) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -26,26 +32,32 @@ export default function UploadModal({ onClose, onFilesReady, onTextReady, isAnal
   return (
     <div className="upload-modal-overlay" onClick={onClose}>
       <div
-        className="upload-modal"
+        className="upload-modal saas-upload-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="upload-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="upload-modal-header">
-          <h2 id="upload-modal-title">Upload Study Material</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close upload dialog">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <div className="modal-header-titles">
+            <span className="modal-eyebrow">PLANNORA WORKSPACE</span>
+            <h2 id="upload-modal-title">IMPORT STUDY MATERIAL</h2>
+          </div>
+          <button className="modal-close" onClick={onClose} aria-label="Close dialog">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </button>
         </div>
-        <UploadArea
-          onFilesReady={onFilesReady}
-          onTextReady={onTextReady}
-          isAnalyzing={isAnalyzing}
-          initialMode={initialMode}
-        />
+
+        <div className="upload-modal-body">
+          <UploadArea
+            onFilesReady={onFilesReady}
+            onTextReady={onTextReady}
+            isAnalyzing={isAnalyzing}
+            initialMode={initialMode}
+          />
+        </div>
       </div>
     </div>
   );

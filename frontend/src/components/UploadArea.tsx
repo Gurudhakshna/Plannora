@@ -8,7 +8,7 @@ const ACCEPTED_TYPES = [
   "image/jpg",
 ];
 const ACCEPTED_EXTENSIONS = ".pdf,.png,.jpg,.jpeg";
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
@@ -20,13 +20,6 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getFileTypeLabel(type: string): string {
-  if (type === "application/pdf") return "PDF";
-  if (type === "image/png") return "PNG";
-  if (type === "image/jpeg") return "JPG";
-  return type.split("/")[1]?.toUpperCase() || "File";
-}
-
 interface UploadAreaProps {
   onFilesReady: (files: UploadedFile[]) => void;
   onTextReady: (text: string, title: string) => void;
@@ -34,7 +27,12 @@ interface UploadAreaProps {
   initialMode?: "file" | "text";
 }
 
-export default function UploadArea({ onFilesReady, onTextReady, isAnalyzing, initialMode = "file" }: UploadAreaProps) {
+export default function UploadArea({
+  onFilesReady,
+  onTextReady,
+  isAnalyzing,
+  initialMode = "file",
+}: UploadAreaProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,26 +47,27 @@ export default function UploadArea({ onFilesReady, onTextReady, isAnalyzing, ini
     const newFiles: UploadedFile[] = [];
 
     for (const file of Array.from(fileList)) {
-      if (!ACCEPTED_TYPES.includes(file.type)) {
-        setError(`"${file.name}" is not a supported file type. Please upload PDF, PNG, or JPG files.`);
+      if (!ACCEPTED_TYPES.includes(file.type) && !file.name.match(/\.(pdf|png|jpg|jpeg)$/i)) {
+        setError(`"${file.name}" is not supported. Please upload PDF, PNG, or JPG files.`);
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
-        setError(`"${file.name}" exceeds the 20 MB size limit.`);
+        setError(`"${file.name}" exceeds the 20 MB limit.`);
         continue;
       }
       newFiles.push({
         id: generateId(),
         name: file.name,
-        type: file.type,
+        type: file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/png"),
         size: file.size,
-        progress: 0,
+        progress: 100,
         status: "complete",
+        file,
       });
     }
 
     if (newFiles.length > 0) {
-      setFiles((prev) => [...prev, ...newFiles]);
+      setFiles(newFiles); // Replace or add
     }
   }, []);
 
@@ -102,20 +101,16 @@ export default function UploadArea({ onFilesReady, onTextReady, isAnalyzing, ini
 
   function removeFile(id: string) {
     setFiles((prev) => prev.filter((f) => f.id !== id));
+    setError(null);
   }
 
   function handleSubmit() {
     if (files.length === 0 && !textContent.trim()) return;
     if (files.length > 0) {
       onFilesReady(files);
-    }
-    if (textContent.trim()) {
+    } else if (textContent.trim()) {
       onTextReady(textContent.trim(), textTitle.trim() || "Untitled Notes");
     }
-    setFiles([]);
-    setTextContent("");
-    setTextTitle("");
-    setShowTextInput(false);
   }
 
   function switchToText() {
@@ -123,171 +118,158 @@ export default function UploadArea({ onFilesReady, onTextReady, isAnalyzing, ini
     window.setTimeout(() => textTitleRef.current?.focus(), 0);
   }
 
-  const hasInput = files.length > 0 || textContent.trim().length > 0;
-
   return (
-    <div className="upload-section">
+    <div className="saas-upload-container">
+      {/* Hidden file input -- never rendered directly in DOM flow */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED_EXTENSIONS}
+        multiple
+        onChange={handleFileInputChange}
+        style={{ display: "none" }}
+        aria-hidden="true"
+      />
+
       {!showTextInput ? (
         <>
-          <div
-            className={`upload-dropzone ${isDragging ? "dragging" : ""}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_EXTENSIONS}
-              multiple
-              onChange={handleFileInputChange}
-              onClick={(e) => e.stopPropagation()}
-              className="upload-file-input"
-              aria-label="Choose files to upload"
-            />
-            <div className="upload-dropzone-icon" aria-hidden="true">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                <rect x="4" y="8" width="32" height="28" rx="4" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
-                <path d="M20 16V28M14 22L20 16L26 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
-                <path d="M12 8V6C12 4.9 12.9 4 14 4H26C27.1 4 28 4.9 28 6V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
-              </svg>
+          {files.length === 0 ? (
+            /* Drag and drop empty state */
+            <div
+              className={`saas-dropzone ${isDragging ? "dragging" : ""}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="dropzone-icon-wrap" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M12 16V4M12 4L8 8M12 4L16 8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 16.5C20 18.433 18.433 20 16.5 20H7.5C5.567 20 4 18.433 4 16.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+
+              <h4 className="dropzone-title">Drag and drop your study material here</h4>
+              <p className="dropzone-subtitle">PDF, JPG, PNG &bull; Maximum file size: 20 MB</p>
+
+              <div className="dropzone-buttons" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Browse Files
+                </button>
+                <span className="dropzone-or">or</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={switchToText}
+                >
+                  Paste / Type Notes
+                </button>
+              </div>
             </div>
-            <p className="upload-dropzone-text">
-              {isDragging ? "Drop your files here" : "Drag & drop PDF or images here"}
-            </p>
-            <p className="upload-dropzone-sub">or click to browse files</p>
-            <span className="upload-dropzone-formats">PDF &bull; JPG &bull; PNG supported &bull; Max 20 MB</span>
-          </div>
+          ) : (
+            /* Selected File State */
+            <div className="saas-selected-state">
+              <div className="selected-file-card">
+                <div className="file-icon-wrap">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" />
+                    <path d="M14 2V8H20" />
+                  </svg>
+                </div>
+                <div className="selected-file-details">
+                  <span className="selected-file-name">{files[0].name}</span>
+                  <span className="selected-file-meta">{formatFileSize(files[0].size)} &bull; Ready for analysis</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm remove-file-btn"
+                  onClick={() => removeFile(files[0].id)}
+                  aria-label="Remove selected file"
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div className="selected-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-lg w-full analyze-action-btn"
+                  onClick={handleSubmit}
+                  disabled={isAnalyzing}
+                >
+                  {isAnalyzing ? "Analyzing Material..." : "Analyze Material"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
-            <div className="upload-error" role="alert">
+            <div className="saas-upload-error" role="alert">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
                 <path d="M8 5V8.5M8 11V11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
-              {error}
-              <button className="upload-error-close" onClick={() => setError(null)} aria-label="Dismiss error">&times;</button>
+              <span>{error}</span>
+              <button className="error-close" onClick={() => setError(null)} aria-label="Dismiss error">&times;</button>
             </div>
           )}
-
-          {files.length > 0 && (
-            <ul className="upload-file-list" aria-label="Selected files">
-              {files.map((f) => (
-                <li key={f.id} className="upload-file-item">
-                  <div className="upload-file-icon" aria-hidden="true">
-                    {f.type === "application/pdf" ? (
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                        <path d="M4 2H11L14 5V16H4V2Z" stroke="currentColor" strokeWidth="1.3"/>
-                        <path d="M11 2V5H14" stroke="currentColor" strokeWidth="1.3"/>
-                        <text x="6" y="12.5" fontSize="5" fontWeight="700" fill="currentColor" fontFamily="var(--font)">PDF</text>
-                      </svg>
-                    ) : (
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                        <rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.3"/>
-                        <circle cx="7" cy="8" r="2" stroke="currentColor" strokeWidth="1.2"/>
-                        <path d="M2 13L6 9L9 12L12 8L16 13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
-                  </div>
-                  <div className="upload-file-info">
-                    <span className="upload-file-name">{f.name}</span>
-                    <span className="upload-file-meta">
-                      {getFileTypeLabel(f.type)} &bull; {formatFileSize(f.size)} &bull; Ready
-                    </span>
-                  </div>
-                  <button
-                    className="upload-file-remove"
-                    onClick={(e) => { e.stopPropagation(); removeFile(f.id); }}
-                    aria-label={`Remove ${f.name}`}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="upload-divider">
-            <span>or</span>
-          </div>
-
-          <button
-            className="btn btn-secondary upload-type-btn"
-            onClick={switchToText}
-            disabled={isAnalyzing}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 3H13M3 7H10M3 11H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            Type Your Notes
-          </button>
         </>
       ) : (
-        <div className="upload-text-input">
-          <div className="upload-text-header">
-            <h3>Type Your Notes</h3>
-            <button className="upload-text-back" onClick={() => setShowTextInput(false)}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M10 4L6 8L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Back to upload
+        /* Paste / Type Notes State */
+        <div className="saas-type-notes">
+          <div className="type-notes-head">
+            <h4>Paste / Type Notes</h4>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowTextInput(false)}
+            >
+              ← Back to File Upload
             </button>
           </div>
+
           <div className="form-group">
-            <label htmlFor="upload-note-title">Note title</label>
+            <label htmlFor="notes-title-input">Material / Subject Title</label>
             <input
               ref={textTitleRef}
-              id="upload-note-title"
+              id="notes-title-input"
               type="text"
-              placeholder="e.g., Operating System Processes"
+              placeholder="e.g., Unit 2: Stack Data Structure & Operations"
               value={textTitle}
               onChange={(e) => setTextTitle(e.target.value)}
-              className="upload-text-title"
             />
           </div>
+
           <div className="form-group">
-            <label htmlFor="upload-note-content">Note content</label>
+            <label htmlFor="notes-content-area">Study Content</label>
             <textarea
-              id="upload-note-content"
-              placeholder="Paste or type your study notes here... Include concepts, definitions, formulas, or any study material you want analyzed."
+              id="notes-content-area"
+              rows={8}
+              placeholder="Paste or type lecture notes, textbook chapters, or topic definitions here... Plannora AI will analyze actual concepts and create learning tasks."
               value={textContent}
               onChange={(e) => setTextContent(e.target.value)}
-              className="upload-text-area"
-              rows={10}
             />
           </div>
-          <div className="upload-text-footer">
-            <span className="upload-text-count" aria-live="polite">
-              {textContent.length > 0 ? `${textContent.split(/\s+/).filter(Boolean).length} words` : "Start typing..."}
-            </span>
-          </div>
-        </div>
-      )}
 
-      {hasInput && (
-        <div className="upload-actions">
-          <button
-            className="btn btn-primary btn-lg upload-analyze-btn"
-            onClick={handleSubmit}
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing ? (
-              <>
-                <span className="btn-spinner" aria-hidden="true" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                  <path d="M9 2L2 16H6L9 8L12 16H16L9 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Analyze with AI
-              </>
-            )}
-          </button>
+          <div className="type-notes-footer">
+            <span className="word-count">
+              {textContent.trim().length > 0
+                ? `${textContent.trim().split(/\s+/).length} words`
+                : "Enter at least 20 characters of study notes"}
+            </span>
+            <button
+              type="button"
+              className="btn btn-primary btn-lg analyze-action-btn"
+              onClick={handleSubmit}
+              disabled={isAnalyzing || textContent.trim().length < 20}
+            >
+              {isAnalyzing ? "Analyzing Material..." : "Analyze Material"}
+            </button>
+          </div>
         </div>
       )}
     </div>
