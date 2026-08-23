@@ -1,44 +1,65 @@
-import { useState, useEffect } from "react";
-
-const PROCESSING_STEPS = [
-  "Reading material...",
-  "Detecting topics...",
-  "Understanding concepts...",
-  "Building learning path...",
-  "Generating teaching content...",
-];
-
 export default function AnalyzingOverlay() {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentStepIndex((prev) =>
-        prev < PROCESSING_STEPS.length - 1 ? prev + 1 : prev
-      );
-    }, 750);
-    return () => clearInterval(timer);
-  }, []);
-
   return (
-    <div className="analyzing-overlay" role="status" aria-live="polite">
-      <div className="analyzing-card">
-        <div className="analyzing-spinner" aria-hidden="true" />
-        <h3>Analyzing material with AI...</h3>
-        <div className="analyzing-steps">
-          {PROCESSING_STEPS.map((stepText, idx) => {
-            const isDone = idx < currentStepIndex;
-            const isActive = idx === currentStepIndex;
-            return (
-              <span
-                key={idx}
-                className={`analyzing-step ${isDone ? "done" : isActive ? "active" : ""}`}
-              >
-                {isDone ? "✓ " : isActive ? "→ " : "• "}
-                {stepText}
-              </span>
-            );
-          })}
+    <div className="modal-backdrop" style={{ zIndex: 1000 }}>
+      <div
+        style={{
+          backgroundColor: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-xl)",
+          padding: "36px 48px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 20,
+          boxShadow: "var(--shadow-modal)",
+          maxWidth: 420,
+          textAlign: "center",
+        }}
+      >
+        <div style={{ position: "relative", width: 64, height: 64 }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: "3px solid var(--accent-light)",
+              borderTopColor: "var(--accent)",
+              animation: "spin 1s linear infinite",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 8,
+              borderRadius: "50%",
+              background: "var(--accent-light)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--accent-text)",
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+        </div>
+
+        <div>
+          <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
+            Analyzing Study Material
+          </h3>
+          <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+            Extracting core concepts, generating prerequisite hierarchies, and tailoring your optimal study plan...
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "var(--accent)", animation: "spin 1.5s ease-in-out infinite" }} />
+          <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "var(--accent)", animation: "spin 1.5s ease-in-out infinite 0.2s" }} />
+          <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "var(--accent)", animation: "spin 1.5s ease-in-out infinite 0.4s" }} />
         </div>
       </div>
     </div>

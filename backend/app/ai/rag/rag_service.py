@@ -1,28 +1,20 @@
 """
-Retrieval-Augmented Generation service.
-
-Orchestrates the full RAG pipeline:
-  Question → Embedding → Retrieval → Context → LLM → Answer + Sources
-
-The LLM provider is behind an abstraction so it can be swapped.
+Retrieval-Augmented Generation service using Groq.
 """
 
 from __future__ import annotations
 
-import os
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
-
-from app.ai.embeddings.embedding_service import ConfigurationError
 from app.ai.rag.retriever import Retriever, RetrievalResult
+from app.services.groq_service import groq_service
 
+logger = logging.getLogger("plannora.rag_service")
 
-# ------------------------------------------------------------------
-# LLM abstraction
-# ------------------------------------------------------------------
 
 class LLMProvider(ABC):
-    """Interface for any LLM backend (OpenAI, Gemini, local, etc.)."""
+    """Interface for any LLM backend."""
 
     @abstractmethod
     async def generate(
@@ -34,25 +26,8 @@ class LLMProvider(ABC):
         ...
 
 
-class OpenAILLMProvider(LLMProvider):
-    """LLM provider using any OpenAI-compatible chat completions API."""
-
-    def __init__(
-        self,
-        api_key: str,
-        model: str = "gpt-4o-mini",
-        base_url: Optional[str] = None,
-    ) -> None:
-        try:
-            from openai import AsyncOpenAI  # type: ignore[import-untyped]
-        except ImportError as exc:
-            raise ImportError(
-                "The 'openai' package is required. "
-                "Install with:  pip install openai"
-            ) from exc
-
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        self._model = model
+class GroqLLMProvider(LLMProvider):
+    """LLM provider powered by Groq."""
 
     async def generate(
         self,
@@ -60,20 +35,12 @@ class OpenAILLMProvider(LLMProvider):
         user_prompt: str,
         temperature: float = 0.3,
     ) -> str:
-        response = await self._client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+        return await groq_service.generate_text(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             temperature=temperature,
         )
-        return response.choices[0].message.content or ""
 
-
-# ------------------------------------------------------------------
-# RAG Service
-# ------------------------------------------------------------------
 
 _SYSTEM_PROMPT = (
     "You are Plannora's academic assistant. Answer the student's question "
@@ -92,13 +59,6 @@ _SYSTEM_PROMPT = (
 class RAGService:
     """
     Full RAG pipeline service.
-
-    Dependencies
-    ------------
-    retriever : Retriever
-        Handles the embedding → pgvector search step.
-    llm_provider : LLMProvider, optional
-        If not supplied, created lazily from env vars.
     """
 
     def __init__(
@@ -107,24 +67,7 @@ class RAGService:
         llm_provider: Optional[LLMProvider] = None,
     ) -> None:
         self._retriever = retriever
-        self._llm = llm_provider
-
-    def _ensure_llm(self) -> LLMProvider:
-        if self._llm is not None:
-            return self._llm
-
-        api_key = os.getenv("AI_API_KEY")
-        if not api_key:
-            raise ConfigurationError(
-                "AI_API_KEY is required for RAG operations. "
-                "Set it in your .env file or environment."
-            )
-        model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-        base_url = os.getenv("AI_BASE_URL")
-        self._llm = OpenAILLMProvider(
-            api_key=api_key, model=model, base_url=base_url
-        )
-        return self._llm
+        self._llm = llm_provider or GroqLLMProvider()
 
     async def answer_question(
         self,
@@ -133,10 +76,6 @@ class RAGService:
         subject_id: Optional[str] = None,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """
-        End-to-end RAG:
-        question → retrieval → context → LLM → answer + sources.
-        """
         results: list[RetrievalResult] = await self._retriever.retrieve(
             query=question,
             user_id=user_id,
@@ -144,7 +83,6 @@ class RAGService:
             top_k=top_k,
         )
 
-        # Build context from retrieved chunks
         context = self._build_context(results)
 
         user_prompt = (
@@ -152,8 +90,7 @@ class RAGService:
             f"Question: {question}"
         )
 
-        llm = self._ensure_llm()
-        answer = await llm.generate(
+        answer = await self._llm.generate(
             system_prompt=_SYSTEM_PROMPT,
             user_prompt=user_prompt,
         )
@@ -175,7 +112,6 @@ class RAGService:
 
     @staticmethod
     def _build_context(results: list[RetrievalResult]) -> str:
-        """Format retrieved chunks into a single context block."""
         if not results:
             return "(No relevant study material found.)"
 

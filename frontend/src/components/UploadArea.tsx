@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import type { UploadedFile } from "../types/study-material";
+import Button from "./ui/Button";
 
 const ACCEPTED_TYPES = [
   "application/pdf",
@@ -20,11 +21,12 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-interface UploadAreaProps {
+export interface UploadAreaProps {
   onFilesReady: (files: UploadedFile[]) => void;
   onTextReady: (text: string, title: string) => void;
   isAnalyzing: boolean;
   initialMode?: "file" | "text";
+  onCancel?: () => void;
 }
 
 export default function UploadArea({
@@ -32,11 +34,12 @@ export default function UploadArea({
   onTextReady,
   isAnalyzing,
   initialMode = "file",
+  onCancel,
 }: UploadAreaProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showTextInput, setShowTextInput] = useState(initialMode === "text");
+  const [isTypingMode, setIsTypingMode] = useState(initialMode === "text");
   const [textTitle, setTextTitle] = useState("");
   const [textContent, setTextContent] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +55,7 @@ export default function UploadArea({
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
-        setError(`"${file.name}" exceeds the 20 MB limit.`);
+        setError(`"${file.name}" exceeds the 20 MB maximum limit.`);
         continue;
       }
       newFiles.push({
@@ -67,7 +70,7 @@ export default function UploadArea({
     }
 
     if (newFiles.length > 0) {
-      setFiles(newFiles); // Replace or add
+      setFiles(newFiles);
     }
   }, []);
 
@@ -113,14 +116,14 @@ export default function UploadArea({
     }
   }
 
-  function switchToText() {
-    setShowTextInput(true);
-    window.setTimeout(() => textTitleRef.current?.focus(), 0);
+  function switchToTyping() {
+    setIsTypingMode(true);
+    setTimeout(() => textTitleRef.current?.focus(), 50);
   }
 
   return (
-    <div className="saas-upload-container">
-      {/* Hidden file input -- never rendered directly in DOM flow */}
+    <div className="import-flow-container">
+      {/* Hidden native input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -131,147 +134,247 @@ export default function UploadArea({
         aria-hidden="true"
       />
 
-      {!showTextInput ? (
+      {!isTypingMode ? (
         <>
           {files.length === 0 ? (
-            /* Drag and drop empty state */
+            /* Main Drag-and-Drop Zone */
             <div
-              className={`saas-dropzone ${isDragging ? "dragging" : ""}`}
+              className={`import-dropzone ${isDragging ? "dragging" : ""}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              aria-label="Upload study material file drop zone"
             >
-              <div className="dropzone-icon-wrap" aria-hidden="true">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M12 16V4M12 4L8 8M12 4L16 8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M20 16.5C20 18.433 18.433 20 16.5 20H7.5C5.567 20 4 18.433 4 16.5" strokeLinecap="round"/>
+              <div className="import-dropzone-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
 
-              <h4 className="dropzone-title">Drag and drop your study material here</h4>
-              <p className="dropzone-subtitle">PDF, JPG, PNG &bull; Maximum file size: 20 MB</p>
+              <h4 className="import-dropzone-title">
+                {isDragging ? "Drop your file here" : "Drop your study material here"}
+              </h4>
+              <p className="import-dropzone-subtitle">
+                or choose a file from your device
+              </p>
 
-              <div className="dropzone-buttons" onClick={(e) => e.stopPropagation()}>
-                <button
+              <div className="import-dropzone-cta" onClick={(e) => e.stopPropagation()}>
+                <Button
                   type="button"
-                  className="btn btn-primary btn-sm"
+                  variant="primary"
+                  size="md"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Browse Files
-                </button>
-                <span className="dropzone-or">or</span>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={switchToText}
-                >
-                  Paste / Type Notes
-                </button>
+                </Button>
+              </div>
+
+              <div className="import-dropzone-meta">
+                PDF, JPG, PNG &bull; Maximum 20 MB
               </div>
             </div>
           ) : (
-            /* Selected File State */
-            <div className="saas-selected-state">
-              <div className="selected-file-card">
-                <div className="file-icon-wrap">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" />
-                    <path d="M14 2V8H20" />
+            /* Selected File Ready State */
+            <div className="import-selected-wrap">
+              <div className="import-file-card">
+                <div className="import-file-card-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
                   </svg>
                 </div>
-                <div className="selected-file-details">
-                  <span className="selected-file-name">{files[0].name}</span>
-                  <span className="selected-file-meta">{formatFileSize(files[0].size)} &bull; Ready for analysis</span>
+                <div className="import-file-card-info">
+                  <span className="import-file-card-name">{files[0].name}</span>
+                  <span className="import-file-card-size">
+                    {formatFileSize(files[0].size)} &bull; Ready to process
+                  </span>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm remove-file-btn"
+                  className="import-file-remove-btn"
                   onClick={() => removeFile(files[0].id)}
-                  aria-label="Remove selected file"
+                  aria-label={`Remove ${files[0].name}`}
+                  title="Remove file"
                 >
-                  Remove
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
                 </button>
               </div>
 
-              <div className="selected-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary btn-lg w-full analyze-action-btn"
+              <div className="import-action-bar">
+                {onCancel && (
+                  <Button variant="ghost" size="md" onClick={onCancel} disabled={isAnalyzing}>
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={handleSubmit}
-                  disabled={isAnalyzing}
+                  loading={isAnalyzing}
+                  style={{ flex: 1 }}
                 >
-                  {isAnalyzing ? "Analyzing Material..." : "Analyze Material"}
-                </button>
+                  {isAnalyzing ? "Processing Material..." : "Analyze Material"}
+                </Button>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="saas-upload-error" role="alert">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M8 5V8.5M8 11V11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <div className="import-error-banner" role="alert">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              <span>{error}</span>
-              <button className="error-close" onClick={() => setError(null)} aria-label="Dismiss error">&times;</button>
+              <span style={{ flex: 1 }}>{error}</span>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                style={{ color: "var(--danger-text)", padding: 2 }}
+                aria-label="Dismiss error"
+              >
+                &times;
+              </button>
             </div>
+          )}
+
+          {/* Alternative Input Option */}
+          {files.length === 0 && (
+            <>
+              <div className="import-divider">
+                <span>OR</span>
+              </div>
+
+              <div className="import-notes-preview-card" onClick={switchToTyping}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div className="import-notes-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h5 style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--text-primary)", marginBottom: 2 }}>
+                      Paste or type your notes
+                    </h5>
+                    <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                      Directly enter text, definitions, or copied lecture transcripts.
+                    </p>
+                  </div>
+                </div>
+                <Button variant="secondary" size="sm" onClick={switchToTyping}>
+                  Continue with Notes &rarr;
+                </Button>
+              </div>
+            </>
           )}
         </>
       ) : (
-        /* Paste / Type Notes State */
-        <div className="saas-type-notes">
-          <div className="type-notes-head">
-            <h4>Paste / Type Notes</h4>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setShowTextInput(false)}
+        /* Alternative Notes Input Workflow */
+        <div className="import-typing-pane">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>
+              Paste or Type Notes
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsTypingMode(false)}
             >
-              ← Back to File Upload
-            </button>
+              &larr; Back to File Upload
+            </Button>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="notes-title-input">Material / Subject Title</label>
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label className="form-label" htmlFor="import-note-title">
+              Document / Topic Title
+            </label>
             <input
               ref={textTitleRef}
-              id="notes-title-input"
+              id="import-note-title"
               type="text"
-              placeholder="e.g., Unit 2: Stack Data Structure & Operations"
+              className="form-input"
+              placeholder="e.g. Unit 3: Graph Search & Dijkstra's Algorithm"
               value={textTitle}
               onChange={(e) => setTextTitle(e.target.value)}
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="notes-content-area">Study Content</label>
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label className="form-label" htmlFor="import-note-content">
+              Study Content
+            </label>
             <textarea
-              id="notes-content-area"
-              rows={8}
-              placeholder="Paste or type lecture notes, textbook chapters, or topic definitions here... Plannora AI will analyze actual concepts and create learning tasks."
+              id="import-note-content"
+              className="form-textarea"
+              rows={7}
+              placeholder="Paste lecture notes, textbook excerpts, or formula sheets here... Plannora will detect key concepts, prerequisite structures, and schedule daily tasks."
               value={textContent}
               onChange={(e) => setTextContent(e.target.value)}
             />
           </div>
 
-          <div className="type-notes-footer">
-            <span className="word-count">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
               {textContent.trim().length > 0
-                ? `${textContent.trim().split(/\s+/).length} words`
-                : "Enter at least 20 characters of study notes"}
+                ? `${textContent.trim().split(/\s+/).filter(Boolean).length} words`
+                : "Enter at least 30 characters"}
             </span>
-            <button
-              type="button"
-              className="btn btn-primary btn-lg analyze-action-btn"
-              onClick={handleSubmit}
-              disabled={isAnalyzing || textContent.trim().length < 20}
-            >
-              {isAnalyzing ? "Analyzing Material..." : "Analyze Material"}
-            </button>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button variant="ghost" size="md" onClick={() => setIsTypingMode(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSubmit}
+                loading={isAnalyzing}
+                disabled={textContent.trim().length < 30}
+              >
+                Analyze Notes &rarr;
+              </Button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* What Happens Next Sequence */}
+      <div className="import-next-steps">
+        <span className="import-next-steps-title">What happens next?</span>
+        <div className="import-steps-grid">
+          <div className="import-step-item">
+            <span className="import-step-num">1</span>
+            <span className="import-step-text">Upload your material</span>
+          </div>
+          <div className="import-step-item">
+            <span className="import-step-num">2</span>
+            <span className="import-step-text">Plannora extracts the content</span>
+          </div>
+          <div className="import-step-item">
+            <span className="import-step-num">3</span>
+            <span className="import-step-text">AI identifies concepts & topics</span>
+          </div>
+          <div className="import-step-item">
+            <span className="import-step-num">4</span>
+            <span className="import-step-text">Your study workspace is generated</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

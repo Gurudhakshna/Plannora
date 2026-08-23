@@ -12,7 +12,8 @@ import os
 from typing import Any, Optional
 
 from app.ai.embeddings.embedding_service import ConfigurationError
-from app.ai.rag.rag_service import LLMProvider, OpenAILLMProvider
+from app.ai.rag.rag_service import GroqLLMProvider, LLMProvider
+from app.core.config import settings
 
 
 _SYSTEM_PROMPT = """\
@@ -53,17 +54,13 @@ class FlashcardService:
         if self._llm is not None:
             return self._llm
 
-        api_key = os.getenv("AI_API_KEY")
+        api_key = settings.effective_groq_api_key
         if not api_key:
             raise ConfigurationError(
-                "AI_API_KEY is required for flashcard generation. "
+                "GROQ_API_KEY is required for flashcard generation. "
                 "Set it in your .env file or environment."
             )
-        model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-        base_url = os.getenv("AI_BASE_URL")
-        self._llm = OpenAILLMProvider(
-            api_key=api_key, model=model, base_url=base_url
-        )
+        self._llm = GroqLLMProvider()
         return self._llm
 
     async def generate_flashcards(

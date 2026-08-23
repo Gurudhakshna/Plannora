@@ -5,23 +5,10 @@ import type {
   AIStudyPlan,
   AnalysisResult,
 } from "../types/study-material";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+import { API_BASE, NETWORK_ERROR_MESSAGE, apiRequest } from "./apiClient";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.detail || `Request failed (${res.status})`);
-  }
-  return res.json();
+  return apiRequest<T>(path, options);
 }
 
 export async function uploadMaterial(
@@ -42,10 +29,10 @@ export async function uploadMaterial(
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve(JSON.parse(xhr.responseText));
       } else {
-        reject(new Error(`Upload failed (${xhr.status})`));
+        reject(new Error(`Upload failed (${xhr.status}). Please try again.`));
       }
     };
-    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.onerror = () => reject(new Error(NETWORK_ERROR_MESSAGE));
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {
         onProgress(Math.round((e.loaded / e.total) * 100));

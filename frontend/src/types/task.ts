@@ -1,6 +1,19 @@
 export type Priority = "Low" | "Medium" | "High";
 
-export type Page = "dashboard" | "plan" | "tasks" | "calendar" | "progress" | "materials" | "profile" | "settings";
+export type Page =
+  | "dashboard"
+  | "plan"
+  | "materials"
+  | "tasks"
+  | "calendar"
+  | "progress"
+  | "profile"
+  | "settings"
+  | "concept-map"
+  | "flashcards"
+  | "pomodoro"
+  | "quiz"
+  | "weak-topics";
 
 export interface Task {
   id: string;

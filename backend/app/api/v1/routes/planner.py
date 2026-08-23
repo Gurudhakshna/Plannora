@@ -1,76 +1,42 @@
 """
-POST /api/v1/planner/recommendations
+POST /api/v1/planner/generate-plan
+POST /api/v1/study-plan/generate
 
-Study plan recommendation generation.
+AI-assisted Study Roadmap generation combining Groq prioritization with deterministic calendar allocation.
 """
 
 from __future__ import annotations
 
-from datetime import date
-
+import logging
 from fastapi import APIRouter, HTTPException
-
-from app.ai.recommendations.study_recommender import (
-    StudyRecommender,
-    TopicPriority,
-    WeakTopic,
+from app.schemas.ai import (
+    StudyPlanGenerateRequest,
+    StudyPlanGenerateResponse,
 )
-from app.api.v1.schemas import (
-    RecommendationsRequest,
-    RecommendationsResponse,
-    RecommendationItem,
-)
+from app.services.groq_service import GroqServiceError
+from app.services.study_plan_service import study_plan_service
 
+logger = logging.getLogger("plannora.routes.planner")
 router = APIRouter()
 
 
-@router.post("/recommendations", response_model=RecommendationsResponse)
-async def get_recommendations(body: RecommendationsRequest):
-    """Generate prioritised study recommendations."""
+@router.post("/generate-plan", response_model=StudyPlanGenerateResponse)
+@router.post("/generate", response_model=StudyPlanGenerateResponse)
+async def generate_study_plan(body: StudyPlanGenerateRequest) -> StudyPlanGenerateResponse:
+    """
+    Generate prioritized study plan with exact dates and daily session distributions.
+    """
     try:
-        recommender = StudyRecommender()
-
-        exam_dt = None
-        if body.exam_date:
-            try:
-                exam_dt = date.fromisoformat(body.exam_date)
-            except ValueError:
-                pass
-
-        topic_priorities = [
-            TopicPriority(
-                topic=tp.topic,
-                importance_score=tp.importance_score,
-                recommended_priority=tp.recommended_priority,
-            )
-            for tp in body.topic_priorities
-        ]
-
-        weak_topics = [
-            WeakTopic(
-                topic=wt.topic,
-                accuracy=wt.accuracy,
-                mastery=wt.mastery,
-            )
-            for wt in body.weak_topics
-        ]
-
-        quiz_performance = {qp.topic: qp.accuracy for qp in body.quiz_performance}
-
-        results = recommender.generate_recommendations(
-            exam_date=exam_dt,
-            topic_priorities=topic_priorities,
-            weak_topics=weak_topics,
-            quiz_performance=quiz_performance,
-            available_study_time=body.available_study_time,
-            syllabus_topics=body.syllabus_topics,
-            recently_studied=set(body.recently_studied),
+        response = await study_plan_service.generate_plan(body)
+        return response
+    except GroqServiceError as exc:
+        raise HTTPException(
+            status_code=503 if exc.code in ("AI_NOT_CONFIGURED", "AI_RATE_LIMITED", "AI_SERVICE_UNAVAILABLE") else 400,
+            detail=exc.message
         )
-
-        items = [
-            RecommendationItem(**r.to_dict())
-            for r in results
-        ]
-        return RecommendationsResponse(recommendations=items)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Recommendation error: {exc}")
+        logger.error(f"Error in generate_study_plan: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate study plan. Please try again."
+        )

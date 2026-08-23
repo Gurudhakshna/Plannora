@@ -22,10 +22,10 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,
     summary="Send a chat message or question",
 )
-def chat(
+async def chat(
     data: ChatMessageRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Interact with study assistant chat interface."""
-    return chat_service.handle_chat_message(db, current_user.id, data)
+    return await chat_service.handle_chat_message(db, current_user.id, data)

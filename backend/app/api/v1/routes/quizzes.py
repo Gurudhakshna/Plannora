@@ -1,34 +1,68 @@
 """
 POST /api/v1/quizzes/generate
+POST /api/v1/quizzes/submit
 
-AI-powered quiz generation from academic context.
+AI Quiz generation via Groq and deterministic scoring calculation in Python.
 """
 
 from __future__ import annotations
 
+import logging
 from fastapi import APIRouter, HTTPException
+from app.schemas.ai import (
+    QuizGenerateRequest,
+    QuizGenerateResponse,
+    QuizSubmitRequest,
+    QuizSubmitResponse,
+)
+from app.services.groq_service import GroqServiceError
+from app.services.quiz_service import quiz_service
 
-from app.ai.embeddings.embedding_service import ConfigurationError
-from app.ai.quiz_generation.quiz_service import QuizService
-from app.api.v1.schemas import QuizGenerateRequest, QuizGenerateResponse
-
+logger = logging.getLogger("plannora.routes.quizzes")
 router = APIRouter()
 
 
 @router.post("/generate", response_model=QuizGenerateResponse)
-async def generate_quiz(body: QuizGenerateRequest):
-    """Generate quiz questions from academic content."""
+async def generate_quiz(body: QuizGenerateRequest) -> QuizGenerateResponse:
+    """
+    Generate multiple-choice questions grounded in academic material.
+    """
     try:
-        service = QuizService()
-        questions = await service.generate_quiz(
+        response = await quiz_service.generate_quiz(
             subject=body.subject,
             topic=body.topic,
             context=body.context,
-            number_of_questions=body.number_of_questions,
+            question_count=body.question_count,
             difficulty=body.difficulty,
         )
-        return QuizGenerateResponse(questions=questions)
-    except ConfigurationError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+        return response
+    except GroqServiceError as exc:
+        raise HTTPException(
+            status_code=503 if exc.code in ("AI_NOT_CONFIGURED", "AI_RATE_LIMITED", "AI_SERVICE_UNAVAILABLE") else 400,
+            detail=exc.message
+        )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"AI service error: {exc}")
+        logger.error(f"Error in generate_quiz: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate quiz. Please try again."
+        )
+
+
+@router.post("/submit", response_model=QuizSubmitResponse)
+def submit_quiz(body: QuizSubmitRequest) -> QuizSubmitResponse:
+    """
+    Deterministically score submitted quiz answers in Python and calculate performance metrics.
+    """
+    try:
+        response = quiz_service.calculate_score(
+            topic=body.topic,
+            answers=body.answers,
+        )
+        return response
+    except Exception as exc:
+        logger.error(f"Error in submit_quiz: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to score quiz submission."
+        )

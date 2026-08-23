@@ -1,46 +1,71 @@
 """
 POST /api/v1/analyze/text
+POST /api/v1/analyze
+GET  /api/v1/ai/test
+GET  /api/v1/ai/status
 
-Lightweight AI content analysis endpoint.
-Accepts raw study material text and returns structured analysis.
-No database or authentication required.
+AI Study Material content analysis and safe connectivity diagnostics powered exclusively by Groq.
 """
 
 from __future__ import annotations
 
+import logging
+from typing import Any, Dict
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from typing import Any, Optional
+from app.core.config import settings
+from app.schemas.ai import AnalyzeTextRequest, AnalyzeTextResponse
+from app.services.analysis_service import analysis_service
+from app.services.groq_service import groq_service, GroqServiceError
 
-from app.ai.content_analyzer import analyze_content
-
+logger = logging.getLogger("plannora.routes.analyze")
 router = APIRouter()
 
 
-class AnalyzeTextRequest(BaseModel):
-    text: str = Field(..., min_length=10, description="Study material text content")
-    filename: Optional[str] = Field(None, description="Original filename if available")
-
-
-class AnalyzeTextResponse(BaseModel):
-    success: bool
-    analysis: dict[str, Any]
-
-
+@router.post("", response_model=AnalyzeTextResponse)
 @router.post("/text", response_model=AnalyzeTextResponse)
 @router.post("/ai/analyze-text", response_model=AnalyzeTextResponse)
-def analyze_text(body: AnalyzeTextRequest):
+async def analyze_text(body: AnalyzeTextRequest) -> AnalyzeTextResponse:
     """
-    Analyze study material text using AI (Groq) and return
-    structured topics, concepts, tasks, study guide, and exam intelligence.
-
-    No authentication required. No database access needed.
+    Analyze study material text using Groq to extract structured concepts,
+    topics, definitions, formulas, tasks, and exam intelligence.
     """
     try:
-        result = analyze_content(text=body.text, filename=body.filename)
+        result = await analysis_service.analyze_text(
+            text=body.text,
+            filename=body.filename,
+            subject=body.subject
+        )
         return AnalyzeTextResponse(success=True, analysis=result)
+    except GroqServiceError as exc:
+        raise HTTPException(
+            status_code=503 if exc.code in ("AI_NOT_CONFIGURED", "AI_RATE_LIMITED", "AI_SERVICE_UNAVAILABLE", "AI_AUTH_FAILED") else 400,
+            detail=exc.message
+        )
     except Exception as exc:
+        logger.error(f"Unexpected error in analyze_text: {exc}")
         raise HTTPException(
             status_code=500,
-            detail=str(exc),
+            detail="Failed to analyze study material. Please verify the content and try again."
         )
+
+
+@router.get("/status", tags=["AI Status"])
+async def get_ai_status() -> Dict[str, Any]:
+    """
+    Safe development configuration diagnostic.
+    Never exposes API keys or secrets.
+    """
+    return {
+        "groq_configured": settings.is_groq_configured,
+        "groq_model": settings.effective_groq_model,
+        "environment": settings.ENVIRONMENT,
+    }
+
+
+@router.get("/test", tags=["AI Test"])
+async def test_groq_connection() -> Dict[str, Any]:
+    """
+    Connectivity check verifying end-to-end communication with Groq LLM API.
+    Never exposes credentials or raw errors.
+    """
+    return await groq_service.test_connection()

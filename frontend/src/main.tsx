@@ -1,12 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
-import { AuthProvider } from "./components/auth/AuthProvider";
-import ProtectedRoute from "./components/layout/ProtectedRoute";
-import Login from "./pages/Login";
-import StudyPlanSetup from "./pages/StudyPlanSetup";
-import App from "./App";
+import { AuthProvider } from "./context/AuthProvider";
+import AppRouter from "./router";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -14,26 +11,7 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/setup-study-plan"
-              element={
-                <ProtectedRoute requireStudyPlan={false}>
-                  <StudyPlanSetup />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <App />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+          <AppRouter />
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

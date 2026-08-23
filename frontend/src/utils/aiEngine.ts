@@ -14,6 +14,7 @@ import type {
   AIAnalysis,
   TaskType,
 } from "../types/study-material";
+import { apiRequest } from "../services/apiClient";
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
@@ -24,29 +25,23 @@ function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
-
 export async function analyzeWithBackend(
   text: string,
   filename?: string
 ): Promise<AIAnalysis> {
-  const res = await fetch(`${API_BASE}/analyze/text`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, filename }),
-  });
+  const data = await apiRequest<{ success: boolean; analysis: AIAnalysis }>(
+    "/analyze/text",
+    {
+      method: "POST",
+      body: JSON.stringify({ text, filename }),
+    }
+  );
 
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => null);
-    throw new Error(errBody?.detail || `AI analysis failed (HTTP ${res.status}). Please try again.`);
-  }
-
-  const data = await res.json();
   if (data.success && data.analysis && Array.isArray(data.analysis.concepts) && data.analysis.concepts.length > 0) {
     return data.analysis as AIAnalysis;
   }
 
-  throw new Error("AI analysis response did not contain valid concept structures.");
+  throw new Error("The AI response could not be processed. Please try again.");
 }
 
 export async function analyzeContent(

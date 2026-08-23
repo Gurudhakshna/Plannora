@@ -2,12 +2,21 @@ import type { ReactNode, HTMLAttributes } from "react";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
+  hoverable?: boolean;
   className?: string;
 }
 
-export default function Card({ children, className = "", ...props }: CardProps) {
+export default function Card({
+  children,
+  hoverable = false,
+  className = "",
+  ...props
+}: CardProps) {
   return (
-    <div className={`dash-section ${className}`.trim()} {...props}>
+    <div
+      className={`card ${hoverable ? "card-hoverable" : ""} ${className}`.trim()}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -15,22 +24,22 @@ export default function Card({ children, className = "", ...props }: CardProps) 
 
 export function CardHeader({
   title,
+  subtitle,
   action,
-  count,
   className = "",
 }: {
   title: ReactNode;
+  subtitle?: ReactNode;
   action?: ReactNode;
-  count?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`dash-section-header ${className}`.trim()}>
-      <h3 className="dash-section-title">
-        {title}
-        {count && <span className="dash-section-count">{count}</span>}
-      </h3>
-      {action}
+    <div className={`card-header ${className}`.trim()}>
+      <div>
+        <h3 className="card-title">{title}</h3>
+        {subtitle && <p className="card-subtitle">{subtitle}</p>}
+      </div>
+      {action && <div className="card-action">{action}</div>}
     </div>
   );
 }

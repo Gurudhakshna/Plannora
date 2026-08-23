@@ -6,7 +6,9 @@ export interface AuthUser {
 }
 
 export interface AuthService {
-  signInWithGoogle(): Promise<AuthUser>;
+  signInWithEmail(email: string, password?: string): Promise<AuthUser>;
+  registerWithEmail(name: string, email: string, password?: string): Promise<AuthUser>;
+  requestPasswordReset(email: string): Promise<void>;
   signOut(): Promise<void>;
   onAuthStateChanged(callback: (user: AuthUser | null) => void): () => void;
   getCurrentUser(): AuthUser | null;
@@ -28,7 +30,7 @@ function loadStoredUser(): AuthUser | null {
       }
     }
   } catch {
-    // corrupted data
+    // Corrupted data
   }
   return null;
 }
@@ -52,17 +54,47 @@ function notifyListeners(): void {
 
 export function createAuthService(): AuthService {
   return {
-    async signInWithGoogle(): Promise<AuthUser> {
+    async signInWithEmail(email: string, _password?: string): Promise<AuthUser> {
+      // Simulate network latency for authentic SaaS feedback
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      
+      const cleanEmail = email.trim().toLowerCase();
+      const derivedName = cleanEmail.split("@")[0] || "Student";
+      const formattedName = derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
+
       const user: AuthUser = {
-        uid: generateUid(),
-        displayName: "User",
-        email: "user@plannora.dev",
+        uid: currentUser?.uid || generateUid(),
+        displayName: formattedName,
+        email: cleanEmail,
         photoURL: null,
       };
+
       currentUser = user;
       storeUser(user);
       notifyListeners();
       return user;
+    },
+
+    async registerWithEmail(name: string, email: string, _password?: string): Promise<AuthUser> {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const cleanEmail = email.trim().toLowerCase();
+      const user: AuthUser = {
+        uid: generateUid(),
+        displayName: name.trim() || cleanEmail.split("@")[0],
+        email: cleanEmail,
+        photoURL: null,
+      };
+
+      currentUser = user;
+      storeUser(user);
+      notifyListeners();
+      return user;
+    },
+
+    async requestPasswordReset(_email: string): Promise<void> {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      // Password reset simulated successfully
     },
 
     async signOut(): Promise<void> {

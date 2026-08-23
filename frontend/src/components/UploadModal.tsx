@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { UploadedFile } from "../types/study-material";
 import UploadArea from "./UploadArea";
 
-interface UploadModalProps {
+export interface UploadModalProps {
   onClose: () => void;
   onFilesReady: (files: UploadedFile[]) => void;
   onTextReady: (text: string, title: string) => void;
@@ -30,32 +30,51 @@ export default function UploadModal({
   }, [onClose]);
 
   return (
-    <div className="upload-modal-overlay" onClick={onClose}>
+    <div
+      className="import-modal-backdrop"
+      onClick={onClose}
+      role="presentation"
+    >
       <div
-        className="upload-modal saas-upload-modal"
+        className="import-modal-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="upload-modal-title"
+        aria-labelledby="import-modal-title"
+        aria-describedby="import-modal-description"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="upload-modal-header">
-          <div className="modal-header-titles">
-            <span className="modal-eyebrow">PLANNORA WORKSPACE</span>
-            <h2 id="upload-modal-title">IMPORT STUDY MATERIAL</h2>
+        {/* Modal Header */}
+        <div className="import-modal-header">
+          <div className="import-modal-titles">
+            <h2 id="import-modal-title" className="import-modal-title">
+              Import Study Material
+            </h2>
+            <p id="import-modal-description" className="import-modal-subtitle">
+              Upload your study material and let Plannora turn it into structured learning content.
+            </p>
           </div>
-          <button className="modal-close" onClick={onClose} aria-label="Close dialog">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M4.5 4.5L13.5 13.5M13.5 4.5L4.5 13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <button
+            type="button"
+            className="import-modal-close-btn"
+            onClick={onClose}
+            aria-label="Close dialog"
+            title="Close"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
 
-        <div className="upload-modal-body">
+        {/* Modal Body */}
+        <div className="import-modal-body">
           <UploadArea
             onFilesReady={onFilesReady}
             onTextReady={onTextReady}
             isAnalyzing={isAnalyzing}
             initialMode={initialMode}
+            onCancel={onClose}
           />
         </div>
       </div>

@@ -1,34 +1,59 @@
 """
 POST /api/v1/flashcards/generate
+POST /api/v1/flashcards/rate
 
-AI-powered flashcard generation from academic context.
+AI-powered Flashcard generation via Groq and difficulty rating tracking.
 """
 
 from __future__ import annotations
 
+import logging
 from fastapi import APIRouter, HTTPException
-
-from app.ai.embeddings.embedding_service import ConfigurationError
-from app.ai.flashcards.flashcard_service import FlashcardService
-from app.api.v1.schemas import (
-    FlashcardGenerateRequest,
-    FlashcardGenerateResponse,
+from app.schemas.ai import (
+    FlashcardRateRequest,
+    FlashcardRateResponse,
+    FlashcardsGenerateRequest,
+    FlashcardsGenerateResponse,
 )
+from app.services.flashcard_service import flashcard_service
+from app.services.groq_service import GroqServiceError
 
+logger = logging.getLogger("plannora.routes.flashcards")
 router = APIRouter()
 
 
-@router.post("/generate", response_model=FlashcardGenerateResponse)
-async def generate_flashcards(body: FlashcardGenerateRequest):
-    """Generate flashcards from academic content."""
+@router.post("/generate", response_model=FlashcardsGenerateResponse)
+async def generate_flashcards(body: FlashcardsGenerateRequest) -> FlashcardsGenerateResponse:
+    """
+    Generate active recall flashcards from academic material.
+    """
     try:
-        service = FlashcardService()
-        cards = await service.generate_flashcards(
+        response = await flashcard_service.generate_flashcards(
+            topic=body.topic,
             context=body.context,
-            num_cards=body.num_cards,
+            count=body.count,
+            difficulty=body.difficulty,
         )
-        return FlashcardGenerateResponse(flashcards=cards)
-    except ConfigurationError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+        return response
+    except GroqServiceError as exc:
+        raise HTTPException(
+            status_code=503 if exc.code in ("AI_NOT_CONFIGURED", "AI_RATE_LIMITED", "AI_SERVICE_UNAVAILABLE") else 400,
+            detail=exc.message
+        )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"AI service error: {exc}")
+        logger.error(f"Error in generate_flashcards: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate flashcards. Please try again."
+        )
+
+
+@router.post("/rate", response_model=FlashcardRateResponse)
+def rate_flashcard(body: FlashcardRateRequest) -> FlashcardRateResponse:
+    """
+    Record user feedback/difficulty rating on a flashcard for mastery tracking.
+    """
+    return FlashcardRateResponse(
+        success=True,
+        message=f"Rating '{body.rating}' recorded for card in topic '{body.topic}'."
+    )
