@@ -263,7 +263,7 @@ export default function QuizPage() {
                   >
                     <option value="3">3 Questions (Quick Check)</option>
                     <option value="5">5 Questions (Standard)</option>
-                    <option value="10">10 Questions (Comprehensive)</option>
+                    <option value="9">9 Questions (Comprehensive)</option>
                   </Select>
                 </div>
               </div>

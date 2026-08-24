@@ -105,7 +105,7 @@ class GroqService:
                 "error": exc.message,
             }
         except Exception as exc:
-            logger.error(f"Groq connection test failed: {exc}")
+            print(f"Groq connection test failed: {exc}")
             return {
                 "success": False,
                 "provider": "groq",

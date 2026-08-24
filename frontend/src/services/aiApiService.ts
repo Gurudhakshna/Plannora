@@ -26,7 +26,7 @@ export interface QuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correct_answer: number;
+  correct_answer: string;
   explanation: string;
   topic: string;
   difficulty: string;
@@ -41,8 +41,8 @@ export interface QuizGenerateResponse {
 
 export interface QuizAnswerSubmission {
   question_id: string;
-  selected_option: number;
-  correct_answer: number;
+  selected_option: string;
+  correct_answer: string;
   topic: string;
 }
 

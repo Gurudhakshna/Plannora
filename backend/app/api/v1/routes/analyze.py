@@ -36,13 +36,11 @@ async def analyze_text(body: AnalyzeTextRequest) -> AnalyzeTextResponse:
             subject=body.subject
         )
         return AnalyzeTextResponse(success=True, analysis=result)
-    except GroqServiceError as exc:
-        raise HTTPException(
-            status_code=503 if exc.code in ("AI_NOT_CONFIGURED", "AI_RATE_LIMITED", "AI_SERVICE_UNAVAILABLE", "AI_AUTH_FAILED") else 400,
-            detail=exc.message
-        )
+    
+    
     except Exception as exc:
         logger.error(f"Unexpected error in analyze_text: {exc}")
+        print(exc)
         raise HTTPException(
             status_code=500,
             detail="Failed to analyze study material. Please verify the content and try again."
