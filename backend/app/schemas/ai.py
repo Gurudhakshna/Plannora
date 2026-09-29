@@ -107,6 +107,15 @@ class AnalyzeTextResponse(BaseModel):
     analysis: AnalysisResultData
 
 
+class FileExtractionResponse(BaseModel):
+    """Text recovered from an uploaded PDF or note image."""
+    success: bool = True
+    text: str
+    filename: str
+    method: str = Field(description="pdf_text or openai_vision_ocr")
+    page_count: int = Field(default=1, ge=1)
+
+
 # ============================================================================
 # Quiz Schemas
 # ============================================================================

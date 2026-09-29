@@ -7,8 +7,14 @@ import { useTaskManager } from "../hooks/useTaskManager";
 import { useMaterialManager } from "../hooks/useMaterialManager";
 import { useStudyPlan } from "../hooks/useStudyPlan";
 import { useToast } from "../hooks/useToast";
-import { analyzeContent, analysisToNotes, analysisToTasks, analysisToPlan, generateId } from "../utils/aiEngine";
-import { extractTextFromPDF } from "../utils/pdfExtractor";
+import {
+  analyzeContent,
+  analysisToNotes,
+  analysisToTasks,
+  analysisToPlan,
+  extractTextFromUpload,
+  generateId,
+} from "../utils/aiEngine";
 import { API_BASE } from "../services/apiClient";
 import { aiTaskToTask } from "../utils/aiTasks";
 import type { DebugState } from "../components/shared/DebugInfoBar";
@@ -215,17 +221,19 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
       setDebugData({
         filename: firstFile?.name || "Uploaded PDF",
         status: "EXTRACTING",
-        apiUrl: `${API_BASE}/analyze/text`,
+        apiUrl: `${API_BASE}/analyze/file`,
       });
 
-      if (firstFile?.file && firstFile.file.type.includes("pdf")) {
+      if (firstFile?.file) {
         try {
           setIsAnalyzing(true);
-          const pdfRes = await extractTextFromPDF(firstFile.file);
-          extractedText = pdfRes.text;
-        } catch {
+          const extraction = await extractTextFromUpload(firstFile.file);
+          extractedText = extraction.text;
+        } catch (err: unknown) {
           setIsAnalyzing(false);
-          const errMsg = "Could not extract text from this PDF. OCR is required for scanned PDFs.";
+          const errMsg = err instanceof Error
+            ? err.message
+            : "Could not read this file. Please upload a clearer PDF or photo.";
           setAnalysisError(errMsg);
           setDebugData((prev) => ({ ...prev, status: "ERROR", errorDetails: errMsg }));
           return;

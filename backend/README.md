@@ -46,6 +46,27 @@ Tests are fully offline — no API key needed.
 | POST   | `/api/v1/flashcards/generate`   | AI flashcard generation            |
 | POST   | `/api/v1/exams/analyze`         | Question paper analysis            |
 | POST   | `/api/v1/planner/recommendations` | Study plan recommendations       |
+| POST   | `/api/v1/analyze/file`            | Extract PDF text or OCR a scanned PDF/note photo |
+
+## PDF and handwritten-note OCR
+
+`POST /api/v1/analyze/file` accepts one PDF, JPG, PNG, or WEBP file (up to
+20 MB) as multipart field `file`. It first reads a PDF's embedded text using
+`pypdf`; scanned PDFs are rendered in memory and sent to OpenAI vision OCR.
+Note photos are sent to the same OCR stage. The endpoint returns transcribed
+text, which the frontend then submits to the existing `/api/v1/analyze/text`
+endpoint, so the established analysis route remains unchanged.
+
+Add these values to `backend/.env` to enable the OCR fallback:
+
+```env
+OPENAI_API_KEY=your_key
+OPENAI_OCR_MODEL=gpt-4o-mini
+```
+
+OCR is deliberately limited to ten scanned-PDF pages per request to keep
+response time and image-token usage predictable. PDFs with embedded text do
+not require an OpenAI key.
 
 ## Architecture
 

@@ -11,14 +11,25 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.core.config import settings
-from app.schemas.ai import AnalyzeTextRequest, AnalyzeTextResponse
+from app.schemas.ai import AnalyzeTextRequest, AnalyzeTextResponse, FileExtractionResponse
 from app.services.analysis_service import analysis_service
+from app.services.file_extraction_service import file_extraction_service
 from app.services.groq_service import groq_service, GroqServiceError
 
 logger = logging.getLogger("plannora.routes.analyze")
 router = APIRouter()
+
+
+@router.post("/file", response_model=FileExtractionResponse)
+async def extract_uploaded_file(file: UploadFile = File(...)) -> FileExtractionResponse:
+    """Recover text from a PDF or note photo before using the existing text AI flow."""
+    content = await file.read()
+    text, method, page_count = await file_extraction_service.extract(
+        content, file.filename or "uploaded-material", file.content_type
+    )
+    return FileExtractionResponse(text=text, filename=file.filename or "uploaded-material", method=method, page_count=page_count)
 
 
 @router.post("", response_model=AnalyzeTextResponse)

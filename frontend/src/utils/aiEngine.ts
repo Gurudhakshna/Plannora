@@ -16,6 +16,13 @@ import type {
 } from "../types/study-material";
 import { apiRequest } from "../services/apiClient";
 
+export interface FileExtractionResult {
+  text: string;
+  filename: string;
+  method: "pdf_text" | "openai_vision_ocr";
+  page_count: number;
+}
+
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
 }
@@ -55,6 +62,17 @@ export async function analyzeContent(
   }
 
   return await analyzeWithBackend(text, filename);
+}
+
+/**
+ * Extract text on the server. PDFs use embedded text where available and
+ * otherwise fall back to the configured vision OCR provider; note photos use
+ * vision OCR directly. The returned text stays on the existing analysis path.
+ */
+export async function extractTextFromUpload(file: File): Promise<FileExtractionResult> {
+  const body = new FormData();
+  body.append("file", file);
+  return apiRequest<FileExtractionResult>("/analyze/file", { method: "POST", body });
 }
 
 export function analysisToNotes(

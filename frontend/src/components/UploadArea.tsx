@@ -7,8 +7,9 @@ const ACCEPTED_TYPES = [
   "image/png",
   "image/jpeg",
   "image/jpg",
+  "image/webp",
 ];
-const ACCEPTED_EXTENSIONS = ".pdf,.png,.jpg,.jpeg";
+const ACCEPTED_EXTENSIONS = ".pdf,.png,.jpg,.jpeg,.webp";
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
 function generateId(): string {
@@ -43,6 +44,7 @@ export default function UploadArea({
   const [textTitle, setTextTitle] = useState("");
   const [textContent, setTextContent] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const textTitleRef = useRef<HTMLInputElement>(null);
 
   const validateAndAddFiles = useCallback((fileList: FileList | File[]) => {
@@ -50,8 +52,8 @@ export default function UploadArea({
     const newFiles: UploadedFile[] = [];
 
     for (const file of Array.from(fileList)) {
-      if (!ACCEPTED_TYPES.includes(file.type) && !file.name.match(/\.(pdf|png|jpg|jpeg)$/i)) {
-        setError(`"${file.name}" is not supported. Please upload PDF, PNG, or JPG files.`);
+      if (!ACCEPTED_TYPES.includes(file.type) && !file.name.match(/\.(pdf|png|jpg|jpeg|webp)$/i)) {
+        setError(`"${file.name}" is not supported. Please upload PDF, PNG, JPG, or WEBP files.`);
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
@@ -133,6 +135,15 @@ export default function UploadArea({
         style={{ display: "none" }}
         aria-hidden="true"
       />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        capture="environment"
+        onChange={handleFileInputChange}
+        style={{ display: "none" }}
+        aria-hidden="true"
+      />
 
       {!isTypingMode ? (
         <>
@@ -178,10 +189,18 @@ export default function UploadArea({
                 >
                   Browse Files
                 </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => cameraInputRef.current?.click()}
+                >
+                  Capture Note Photo
+                </Button>
               </div>
 
               <div className="import-dropzone-meta">
-                PDF, JPG, PNG &bull; Maximum 20 MB
+                PDF, JPG, PNG, WEBP &bull; Maximum 20 MB
               </div>
             </div>
           ) : (

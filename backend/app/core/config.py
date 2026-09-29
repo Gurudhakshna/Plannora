@@ -71,6 +71,20 @@ class Settings:
             return 60.0
 
     @property
+    def OPENAI_API_KEY(self) -> str:
+        _load_env_files()
+        return os.getenv("OPENAI_API_KEY", "")
+
+    @property
+    def OPENAI_OCR_MODEL(self) -> str:
+        _load_env_files()
+        return os.getenv("OPENAI_OCR_MODEL", "gpt-4o-mini")
+
+    @property
+    def is_openai_ocr_configured(self) -> bool:
+        return bool(self.OPENAI_API_KEY.strip())
+
+    @property
     def DATABASE_URL(self) -> str:
         _load_env_files()
         return os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/plannora")
