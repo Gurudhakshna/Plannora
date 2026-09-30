@@ -116,7 +116,7 @@ export default function QuizPage() {
     try {
       const payloadAnswers = questions.map((q, idx) => ({
         question_id: q.id,
-        selected_option: selectedAnswers[idx] !== undefined ? selectedAnswers[idx] : -1,
+        selected_option: selectedAnswers[idx] !== undefined ? String(selectedAnswers[idx]) : "-1",
         correct_answer: q.correct_answer,
         topic: q.topic || quizTitle,
       }));
@@ -479,7 +479,7 @@ export default function QuizPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               {questions.map((q, idx) => {
                 const userChoice = selectedAnswers[idx];
-                const isCorrect = userChoice === q.correct_answer;
+                const isCorrect = userChoice !== undefined && userChoice === Number(q.correct_answer);
 
                 return (
                   <div
@@ -506,7 +506,7 @@ export default function QuizPage() {
 
                     {!isCorrect && (
                       <div style={{ fontSize: "13px", color: "var(--success-text)", marginBottom: 8 }}>
-                        <strong>Correct Answer:</strong> {String.fromCharCode(65 + q.correct_answer)}) {q.options[q.correct_answer]}
+                        <strong>Correct Answer:</strong> {String.fromCharCode(65 + Number(q.correct_answer))}) {q.options[Number(q.correct_answer)]}
                       </div>
                     )}
 
